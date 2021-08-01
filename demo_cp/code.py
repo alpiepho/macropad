@@ -7,23 +7,62 @@ import keypad
 from rainbowio import colorwheel
 from adafruit_macropad import MacroPad
 
+
+key_pins = (board.KEY1, board.KEY2, board.KEY3, board.KEY4, board.KEY5, board.KEY6,
+            board.KEY7, board.KEY8, board.KEY9, board.KEY10, board.KEY11, board.KEY12)
+keys = keypad.Keys(key_pins, value_when_pressed=False, pull=True)
+
+encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
+button = digitalio.DigitalInOut(board.BUTTON)
+button.switch_to_input(pull=digitalio.Pull.UP)
+
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 12, brightness=0.2)
+
+
+#macropad = MacroPad()
+#text_lines = macropad.display_text(title="MacroPad Info")
+
+last_position = None
+while True:
+    if not button.value:
+        pixels.brightness = 1.0
+    else:
+        pixels.brightness = 0.2
+
+    position = encoder.position
+    if last_position is None or position != last_position:
+        print("Rotary:", position)
+    last_position = position
+
+    color_value = (position * 2) % 255
+
+    event = keys.events.get()
+    if event:
+        print(event)
+        if event.pressed:
+            pixels[event.key_number] = colorwheel(color_value)
+        else:
+            pixels[event.key_number] = 0
+
+#from adafruit_macropad import MacroPad
+
 # // Create the neopixel strip with the built in definitions NUM_NEOPIXEL and PIN_NEOPIXEL
 # Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_NEOPIXEL, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 12, brightness=0.2)
 
 # // Create the OLED display
 # Adafruit_SH1106G display = Adafruit_SH1106G(128, 64, &SPI1, OLED_DC, OLED_RST, OLED_CS);
 # HELP: https://circuitpython.readthedocs.io/projects/simple-text-display/en/latest/api.html
-macropad = MacroPad()
-text_lines = macropad.display_text()
+#macropad = MacroPad()
+#text_lines = macropad.display_text()
 
 # // Create the rotary encoder
 # RotaryEncoder encoder(PIN_ROTA, PIN_ROTB, RotaryEncoder::LatchMode::FOUR3);
 # void checkPosition() {  encoder.tick(); } // just call tick() to check the state.
 # // our encoder position state
 # int encoder_pos = 0;
-encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
-encoder_pos = 0
+
+
+#encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
 
 # void setup() {
 #   Serial.begin(115200);
@@ -31,12 +70,10 @@ encoder_pos = 0
 #   delay(100);  // RP2040 delay is not a bad idea
 
 #   Serial.println("Adafruit Macropad with RP2040");
-print("Adafruit Macropad with RP2040")
 
 #   // start pixels!
 #   pixels.begin();
 #   pixels.setBrightness(255);
-pixels.brightness = 1.0
 #   pixels.show(); // Initialize all pixels to 'off'
 
 #   // Start OLED
@@ -76,8 +113,6 @@ pixels.brightness = 1.0
 # bool i2c_found[128] = {false};
 
 # void loop() {
-while True:
-  pass
 #   display.clearDisplay();
 #   display.setCursor(0,0);
 #   display.println("* Adafruit Macropad *");
