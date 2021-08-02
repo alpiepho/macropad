@@ -17,3 +17,28 @@ Some notes on using the demo:
 [Other Macropad Example on Github](https://github.com/adafruit/Adafruit_CircuitPython_MacroPad/tree/main/examples)
 
 [Other Examples on Github](https://github.com/adafruit/Adafruit_Learning_System_Guides)
+
+
+## Re-create arduino demo using circuitpython
+
+The Macropad board has a demo pre-installed.  It is written as a .ino file (see demo.ino).
+
+The circuitpython script in demo_py re-creates that demo.
+
+Basic steps of demo:
+- setup 
+
+TODO List
+- [done] setup and create tone
+- [done] comment out tune
+- build display
+    - anchor_point vs anchor_position?
+    - title
+    - rotary
+    - direction
+    - 12 keys
+- pixel colors
+- button press for brightness
+- comment with demo.ino?
+- refactor and clean up python
+- how to run a clock
