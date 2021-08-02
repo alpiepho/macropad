@@ -162,8 +162,6 @@ while True:
     if last_position is None or position != last_position:
         last_position = position
         text_areas[index_line2].text = "Rotary encoder: " + str(position)
-    else:
-        text_areas[index_line2].text = ""
 
     # print title
     text_areas[index_line1].text = "* Adafruit Macropad *"
@@ -171,6 +169,7 @@ while True:
     # check all keys, print KEYn if presses
     event = keys.events.get()
     if event:
+        text_areas[index_line2].text = ""
         text = "KEY" + str(event.key_number + 1)
         if event.pressed:
             text_areas[index_keys+event.key_number].text = text
