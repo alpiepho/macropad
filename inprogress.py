@@ -1,11 +1,14 @@
 import board
+import digitalio
 import displayio
 import keypad
+import neopixel
 import rotaryio
 import terminalio
 import time
 from adafruit_display_text import label  # display
 from adafruit_macropad import MacroPad   # tone
+from rainbowio import colorwheel
 
 
 
@@ -16,6 +19,11 @@ key_pins = (board.KEY1, board.KEY2, board.KEY3, board.KEY4, board.KEY5, board.KE
 keys = keypad.Keys(key_pins, value_when_pressed=False, pull=True)
 
 encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
+
+button = digitalio.DigitalInOut(board.BUTTON)
+button.switch_to_input(pull=digitalio.Pull.UP)
+pixels = neopixel.NeoPixel(board.NEOPIXEL, 12, brightness=0.2)
+
 
 # TODO MacroPad conflicts with keypad
 # macropad = MacroPad()
@@ -131,15 +139,36 @@ text_group = displayio.Group()
 for ta in text_areas:
     text_group.append(ta)
 
+text_areas[index_line1].text = "* Adafruit Macropad *"
 board.DISPLAY.show(text_group)
 
 
 # loop
 last_position = None
+loops = 0
 while True:
+    # if encoder button presses, change brightness
+    if not button.value:
+        pixels.brightness = 1.0
+    else:
+        pixels.brightness = 0.2
+
+    # change colors of all buttons 
+    for i in range(len(pixels)):
+        color_value = ((i * 256 / len(pixels)) + loops) % 255
+        pixels[i] = colorwheel(color_value)
+
+    position = encoder.position
+    if last_position is None or position != last_position:
+        last_position = position
+        text_areas[index_line2].text = "Rotary encoder: " + str(position)
+    else:
+        text_areas[index_line2].text = ""
+
+    # print title
     text_areas[index_line1].text = "* Adafruit Macropad *"
 
-
+    # check all keys, print KEYn if presses
     event = keys.events.get()
     if event:
         text = "KEY" + str(event.key_number + 1)
@@ -148,20 +177,14 @@ while True:
         else:
             text_areas[index_keys+event.key_number].text = ""
 
-    position = encoder.position
-    if last_position is None or position != last_position:
-        last_position = position
-        y = text_areas[index_keys+0].anchored_position[1]
-        text_areas[index_keys+0].anchored_position = (abs(position), y)
-        # board.DISPLAY.show(text_group)
+    loops = loops + 1
+
 
     # print encoder position and direction
 
     # scan i2c
 
     # print encoder button
-    # if encoder button presses, change brightness
 
-    # change colors of all buttons 
 
-    # check all keys, print KEYn if presses
+

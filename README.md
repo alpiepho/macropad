@@ -42,3 +42,11 @@ TODO List
 - comment with demo.ino?
 - refactor and clean up python
 - how to run a clock
+
+
+    # position = encoder.position
+    # if last_position is None or position != last_position:
+    #     last_position = position
+    #     y = text_areas[index_keys+0].anchored_position[1]
+    #     text_areas[index_keys+0].anchored_position = (abs(position), y)
+    #     # board.DISPLAY.show(text_group)
