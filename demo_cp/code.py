@@ -88,7 +88,7 @@ while True:
     # TODO
 
     # check encoder press
-    if not macropad.encoder_switch_debounced:
+    if macropad.encoder_switch:
         print("Encoder pressed")
         macropad.pixels.brightness = 1.0
     else:
