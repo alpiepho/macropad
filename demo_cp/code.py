@@ -1,208 +1,115 @@
-"""Keypad and rotary encoder example for Adafruit MacroPad"""
+import time
 import board
-import digitalio
-import rotaryio
-import neopixel
-import keypad
+import displayio
+import terminalio
+from adafruit_display_text import label  # display
+from adafruit_macropad import MacroPad   # tone
 from rainbowio import colorwheel
-from adafruit_macropad import MacroPad
 
+# NOTE: This circuitpython applications tries to follow the flow of the arduino demo.ino
+# that is pre-installed on the Adafruit MacroPad board.
 
-key_pins = (board.KEY1, board.KEY2, board.KEY3, board.KEY4, board.KEY5, board.KEY6,
-            board.KEY7, board.KEY8, board.KEY9, board.KEY10, board.KEY11, board.KEY12)
-keys = keypad.Keys(key_pins, value_when_pressed=False, pull=True)
+# NOTE: MacroPad has a display_text, build on displayio, but we need more control
+# https://github.com/adafruit/Adafruit_CircuitPython_Display_Text
 
-encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
-button = digitalio.DigitalInOut(board.BUTTON)
-button.switch_to_input(pull=digitalio.Pull.UP)
+macropad = MacroPad()
+macropad.play_tone(988, 0.1)
+macropad.play_tone(1319, 0.2)
 
-pixels = neopixel.NeoPixel(board.NEOPIXEL, 12, brightness=0.2)
+# for display
+# set up (empty) text areas in a text_group
+DISPLAY_WIDTH = 128
+DISPLAY_HEIGHT = 64
+text_areas = []
+y = -4
+ydelta = 18
 
+index_line1 = len(text_areas)
+ta = label.Label(terminalio.FONT, text="")
+ta.anchor_point = (0.0, 0.0)
+ta.anchored_position = (0, y)
+text_areas.append(ta)
+y = y + ydelta
 
-#macropad = MacroPad()
-#text_lines = macropad.display_text(title="MacroPad Info")
+index_line2 = len(text_areas)
+ta = label.Label(terminalio.FONT, text="")
+ta.anchor_point = (0.0, 0.0)
+ta.anchored_position = (0, y)
+text_areas.append(ta)
+y = y + ydelta
 
+index_line3 = len(text_areas)
+ta = label.Label(terminalio.FONT, text="")
+ta.anchor_point = (0.0, 0.0)
+ta.anchored_position = (0, y)
+text_areas.append(ta)
+y = y + ydelta
+
+index_line4 = len(text_areas)
+ta = label.Label(terminalio.FONT, text="")
+ta.anchor_point = (0.0, 0.0)
+ta.anchored_position = (0, y)
+text_areas.append(ta)
+y = y + ydelta
+
+y = ydelta
+index_keys = len(text_areas)
+b = 0.0
+for row in range(4):
+    a = 0.0
+    x = 0
+    for col in range(3):
+        ta = label.Label(terminalio.FONT, text="")
+        ta.anchor_point = (a, b)
+        ta.anchored_position = (x, y)
+        text_areas.append(ta)
+        a = a + 0.5
+        x = x + DISPLAY_WIDTH / 2
+    b = b + 0.5
+    y = y + ydelta
+
+text_group = displayio.Group()
+for ta in text_areas:
+    text_group.append(ta)
+text_areas[index_line1].text = "* Adafruit Macropad *"
+board.DISPLAY.show(text_group)
+
+# loop
 last_position = None
+loops = 0
 while True:
-    if not button.value:
-        pixels.brightness = 1.0
-    else:
-        pixels.brightness = 0.2
-
-    position = encoder.position
+    # check encoder position
+    position = macropad.encoder
     if last_position is None or position != last_position:
-        print("Rotary:", position)
-    last_position = position
+        last_position = position
+        text_areas[index_line2].text = "Rotary encoder: " + str(position)
 
-    color_value = (position * 2) % 255
+    # scan i2c
+    # TODO
 
-    event = keys.events.get()
+    # check encoder press
+    if not macropad.encoder_switch_debounced:
+        print("Encoder pressed")
+        macropad.pixels.brightness = 1.0
+    else:
+        macropad.pixels.brightness = 0.2
+
+    # change colors of all buttons 
+    for i in range(len(macropad.pixels)):
+        color_value = ((i * 256 / len(macropad.pixels)) + loops) % 255
+        macropad.pixels[i] = colorwheel(color_value)
+ 
+    # check all keys, print KEYn if presses
+    event = macropad.keys.events.get()
     if event:
-        print(event)
+        text_areas[index_line2].text = ""
+        text_areas[index_line3].text = ""
+        text_areas[index_line4].text = ""
         if event.pressed:
-            pixels[event.key_number] = colorwheel(color_value)
+            macropad.pixels[event.key_number] = 0xffffffff
+            text_areas[index_keys + event.key_number].text = "KEY" + str(event.key_number + 1)
+            time.sleep(0.2) # hold white
         else:
-            pixels[event.key_number] = 0
+            text_areas[index_keys + event.key_number].text = ""
 
-#from adafruit_macropad import MacroPad
-
-# // Create the neopixel strip with the built in definitions NUM_NEOPIXEL and PIN_NEOPIXEL
-# Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_NEOPIXEL, PIN_NEOPIXEL, NEO_GRB + NEO_KHZ800);
-
-# // Create the OLED display
-# Adafruit_SH1106G display = Adafruit_SH1106G(128, 64, &SPI1, OLED_DC, OLED_RST, OLED_CS);
-# HELP: https://circuitpython.readthedocs.io/projects/simple-text-display/en/latest/api.html
-#macropad = MacroPad()
-#text_lines = macropad.display_text()
-
-# // Create the rotary encoder
-# RotaryEncoder encoder(PIN_ROTA, PIN_ROTB, RotaryEncoder::LatchMode::FOUR3);
-# void checkPosition() {  encoder.tick(); } // just call tick() to check the state.
-# // our encoder position state
-# int encoder_pos = 0;
-
-
-#encoder = rotaryio.IncrementalEncoder(board.ROTA, board.ROTB)
-
-# void setup() {
-#   Serial.begin(115200);
-#   //while (!Serial) { delay(10); }     // wait till serial port is opened
-#   delay(100);  // RP2040 delay is not a bad idea
-
-#   Serial.println("Adafruit Macropad with RP2040");
-
-#   // start pixels!
-#   pixels.begin();
-#   pixels.setBrightness(255);
-#   pixels.show(); // Initialize all pixels to 'off'
-
-#   // Start OLED
-#   display.begin(0, true); // we dont use the i2c address but we will reset!
-#   display.display();
-  
-#   // set all mechanical keys to inputs
-#   for (uint8_t i=0; i<=12; i++) {
-#     pinMode(i, INPUT_PULLUP);
-#   }
-
-
-
-#   // set rotary encoder inputs and interrupts
-#   pinMode(PIN_ROTA, INPUT_PULLUP);
-#   pinMode(PIN_ROTB, INPUT_PULLUP);
-#   attachInterrupt(digitalPinToInterrupt(PIN_ROTA), checkPosition, CHANGE);
-#   attachInterrupt(digitalPinToInterrupt(PIN_ROTB), checkPosition, CHANGE);  
-
-#   // We will use I2C for scanning the Stemma QT port
-#   Wire.begin();
-
-#   // text display tests
-#   display.setTextSize(1);
-#   display.setTextWrap(false);
-#   display.setTextColor(SH110X_WHITE, SH110X_BLACK); // white text, black background
-
-#   pinMode(PIN_SPEAKER, OUTPUT);
-#   digitalWrite(PIN_SPEAKER, LOW);
-#   // tone(PIN_SPEAKER, 988, 100);  // tone1 - B5
-#   // delay(100);
-#   // tone(PIN_SPEAKER, 1319, 200); // tone2 - E6
-#   // delay(200);
-# }
-
-# uint8_t j = 0;
-# bool i2c_found[128] = {false};
-
-# void loop() {
-#   display.clearDisplay();
-#   display.setCursor(0,0);
-#   display.println("* Adafruit Macropad *");
-  
-#   encoder.tick();          // check the encoder
-#   int newPos = encoder.getPosition();
-#   if (encoder_pos != newPos) {
-#     Serial.print("Encoder:");
-#     Serial.print(newPos);
-#     Serial.print(" Direction:");
-#     Serial.println((int)(encoder.getDirection()));
-#     encoder_pos = newPos;
-#   }
-#   display.setCursor(0, 8);
-#   display.print("Rotary encoder: ");
-#   display.print(encoder_pos);
-
-#   // Scanning takes a while so we don't do it all the time
-#   if ((j & 0x3F) == 0) {
-#     Serial.println("Scanning I2C: ");
-#     Serial.print("Found I2C address 0x");
-#     for (uint8_t address = 0; address <= 0x7F; address++) {
-#       Wire.beginTransmission(address);
-#       i2c_found[address] = (Wire.endTransmission () == 0);
-#       if (i2c_found[address]) {
-#         Serial.print("0x");
-#         Serial.print(address, HEX);
-#         Serial.print(", ");
-#       }
-#     }
-#     Serial.println();
-#   }
-  
-#   display.setCursor(0, 16);
-#   display.print("I2C Scan: ");
-#   for (uint8_t address=0; address <= 0x7F; address++) {
-#     if (!i2c_found[address]) continue;
-#     display.print("0x");
-#     display.print(address, HEX);
-#     display.print(" ");
-#   }
-  
-#   // check encoder press
-#   display.setCursor(0, 24);
-#   if (!digitalRead(PIN_SWITCH)) {
-#     Serial.println("Encoder button");
-#     display.print("Encoder pressed ");
-#     pixels.setBrightness(255);     // bright!
-#   } else {
-#     pixels.setBrightness(80);
-#   }
-
-#   for(int i=0; i< pixels.numPixels(); i++) {
-#     pixels.setPixelColor(i, Wheel(((i * 256 / pixels.numPixels()) + j) & 255));
-#   }
-  
-#   for (int i=1; i<=12; i++) {
-#     if (!digitalRead(i)) { // switch pressed!
-#       Serial.print("Switch "); Serial.println(i);
-#       pixels.setPixelColor(i-1, 0xFFFFFF);  // make white
-#       // move the text into a 3x4 grid
-#       display.setCursor(((i-1) % 3)*48, 32 + ((i-1)/3)*8);
-#       display.print("KEY");
-#       display.print(i);
-#     }
-#   }
-
-#   // show neopixels, incredment swirl
-#   pixels.show();
-#   j++;
-
-#   // display oled
-#   display.display();
-# }
-
-
-
-
-
-# // Input a value 0 to 255 to get a color value.
-# // The colours are a transition r - g - b - back to r.
-# uint32_t Wheel(byte WheelPos) {
-#   if(WheelPos < 85) {
-#    return pixels.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-#   } else if(WheelPos < 170) {
-#    WheelPos -= 85;
-#    return pixels.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-#   } else {
-#    WheelPos -= 170;
-#    return pixels.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-#   }
-# }
-
+    loops = loops + 1
