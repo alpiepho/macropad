@@ -43,3 +43,12 @@ TODO List
 - [done] refactor and clean up python
 - [done] how to run a clock
 
+## Multiple Timers
+
+Leverage the demo_cp project to run up to 12 timers.  
+- Each timer will be associated with a key
+- Each timer will display on screen in form 00:00 in specific location on display
+- Each timer can count down or count up in seconds
+- Each timer can be started, paused, resume, reset with the associated key
+- The color of each timer will reflect the state of the timer
+TODO Finish
