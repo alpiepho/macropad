@@ -13,8 +13,8 @@ from rainbowio import colorwheel
 # https://github.com/adafruit/Adafruit_CircuitPython_Display_Text
 
 macropad = MacroPad()
-macropad.play_tone(988, 0.1)
-macropad.play_tone(1319, 0.2)
+# macropad.play_tone(988, 0.1)
+# macropad.play_tone(1319, 0.2)
 
 # for display
 # set up (empty) text areas in a text_group

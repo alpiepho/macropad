@@ -102,7 +102,7 @@ def set_text_areas():
     for i, t in enumerate(timers):
         m = t.current // 60
         s = t.current % 60
-        text_areas[i] = f'{m:02}:{s:02}'
+        text_areas[i].text = f'{m:02}:{s:02}'
 
 
 def run_timers(total):
