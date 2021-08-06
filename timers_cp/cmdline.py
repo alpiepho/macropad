@@ -1,3 +1,4 @@
+import os.path
 import time
 
 # import board
@@ -30,24 +31,37 @@ for i in range(12):
     label.text = "00:00"
     text_areas.append(label)
 
-def dump_text_areas():
-    line = ""
-    for i, ta in enumerate(text_areas):
-        line = line + ta.text + " "
-        if (i+1) % 3 == 0:
-            line = line + "  "
-    print(line)
+
 
 
 
 
 # real timers for code.py
 class Timer():
-    down = False
+    delta = 1
     start = 0
     current = 0
     running = False
     paused = False
+    color = "G"
+    blink = "_"
+    # G_  - green, solid
+    # G.  - green, blink
+    # g_  - green, solid, dim
+    # g.  - green, blink, dim
+    # Y_  - yellow, solid
+    # Y.  - yellow, blink
+    # y_  - yellow, solid, dim
+    # y.  - yellow, blink, dim
+    # O_  - orange, solid
+    # O.  - orange, blink
+    # o_  - orange, solid, dim
+    # o.  - orange, blink, dim
+    # R_  - red, solid
+    # R.  - red, blink
+    # r_  - red, solid, dim
+    # r.  - red, blink, dim
+    # S   - sound
 
 timers = []
 
@@ -55,78 +69,103 @@ def dump_timers():
     for t in timers:
         print(vars(t))
 
-def addTimer(start, down):
+def timer_add(start, delta):
     t = Timer()
     t.start = 0
     t.current = 0
     t.running = False
     t.paused = False
-    t.down = down
-    if down:
+    t.delta = delta
+    if delta < 0:
         t.start = start
         t.current = start
     timers.append(t)
 
-def default_timers():
-    timers = []
-    addTimer(start=0, down=False)
-    addTimer(start=120, down=True)
+def timers_start_all():
+    for _, t in enumerate(timers):
+        t.running = True
+        t.paused = False
+  
+def timers_update():
+    for _, t in enumerate(timers):
+        if t.running:
+            if not t.paused:
+                # update current time
+                t.current = t.current + t.delta
+                t.blink = "."
+                if t.delta < 0:
+                    if t.current < 0:
+                        t.current = 0
+                    # update color
+                    percent = 100.0 * t.current / t.start
+                    t.color = "G"
+                    if percent < 70.0 :
+                        t.color = "Y"
+                    if percent < 40.0 :
+                        t.color = "O"
+                    if percent < 10.0 :
+                        t.color = "R"
+                    if percent < 10.0 :
+                        t.color = "R"
+                    if t.current == 0:
+                        t.blink = "_"
+                        t.running = False
+                        # TODO update sound
+                else:
+                    t.color = "G"
+            else:
+                # update color
+                t.color = t.color.lower()
+                t.blink = "_"       
 
-def prompt_timers():
-    timers = []
-    val = input("Number timers: ")
-    count = int(val)
-    if count < 1:
-        count = 1
-    if count > 12:
-        count = 12
-    for i in range(count):
-        print("timer " + str(i+1) + ": ")
-        val = input("down (y/n): ")
-        down = False
-        start = 0
-        if val == 'y':
-            down = True
-            val = input("start: ")
-            start = int(val)
-        addTimer(start=start, down=down)
-
-def update_timers():
-    pass
-
-def set_text_areas():
-    # cycle all timers,
-    # format current and set text area
-    # update current
-    pass
+def timers_display():
     for i, t in enumerate(timers):
-        m = t.current // 60
-        s = t.current % 60
-        text_areas[i].text = f'{m:02}:{s:02}'
+        M = (t.current // 100) // 60
+        s = (t.current // 100) % 60
+        m = t.current % 100
+        text_areas[i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
 
+def timers_show():
+    line = ""
+    for i, ta in enumerate(text_areas):
+        line = line + ta.text + "  "
+        if (i+1) % 3 == 0:
+            line = line + "\t"
+    print(line)
 
-def run_timers(total):
-    set_text_areas()
+encoder_button = False
+def check_buttons():
+    pass
+    # check encoder button 
+    # 4x - stop, reset, prompt
+    # 1x - pause/play all
+    # check each key
+    # 4x - stop, reset
+    # 1x - pause/play
+    if os.path.exists("encoder_button.txt"):
+        encoder_button = True
+
+def timers_run():
+    timers_display()
+    timers_show()
+
+    timers_start_all()
     last = time.time()
-    count = 0
     while True:
         current = time.time()
-        if (current - last) > 1:
+        if (current - last) > 0.01:
             last = current
-            count = count + 1
-            dump_text_areas()
-        if (total > 0 and count >= total):
-            break
+            # TODO check main button
+            # TODO check each timer key
+            timers_update()
+            timers_display()
+            timers_show()
 
 
 
-# prompt_timers()
-default_timers()
-dump_timers()
-
-run_timers(5)
-
-dump_text_areas()
+timer_add(start=0, delta=1)
+timer_add(start=10000, delta=-1)
+timers_run()
 
 # # for display
 # # set up (empty) text areas in a text_group
