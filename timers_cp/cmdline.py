@@ -1,4 +1,4 @@
-import os.path
+import os
 import time
 
 # import board
@@ -43,7 +43,7 @@ class Timer():
     current = 0
     running = False
     paused = False
-    color = "G"
+    color = "g"
     blink = "_"
     # G_  - green, solid
     # G.  - green, blink
@@ -74,18 +74,35 @@ def timer_add(start, delta):
     t.start = 0
     t.current = 0
     t.running = False
-    t.paused = False
+    t.paused = True
     t.delta = delta
     if delta < 0:
         t.start = start
         t.current = start
     timers.append(t)
 
+def timer_reset(index):
+    t = timers[index]
+    t.current = 0
+    t.paused = True
+    if t.delta < 0:
+        t.current = t.start
+    t.color = "g"
+    t.blink = "_"
+
 def timers_start_all():
     for _, t in enumerate(timers):
         t.running = True
         t.paused = False
-  
+
+def timers_reset_all():
+    for i, _ in enumerate(timers):
+        timer_reset(i)
+
+def timers_toggle_all():
+    for _, t in enumerate(timers):
+        t.paused = not t.paused 
+
 def timers_update():
     for _, t in enumerate(timers):
         if t.running:
@@ -133,17 +150,26 @@ def timers_show():
             line = line + "\t"
     print(line)
 
-encoder_button = False
 def check_buttons():
-    pass
-    # check encoder button 
-    # 4x - stop, reset, prompt
-    # 1x - pause/play all
-    # check each key
-    # 4x - stop, reset
-    # 1x - pause/play
-    if os.path.exists("encoder_button.txt"):
-        encoder_button = True
+    name_4x = "encoder_4x.txt"
+    name_1x = "encoder_1x.txt"
+    if os.path.exists(name_4x):
+        os.remove(name_4x)
+        timers_reset_all()
+    if os.path.exists(name_1x):
+        os.remove(name_1x)
+        timers_toggle_all()
+    for i, t in enumerate(timers):
+        name_4x = "key" + str(i+1) + "_4x.txt"
+        name_1x = "key" + str(i+1) + "_1x.txt"
+        if os.path.exists(name_4x):
+            os.remove(name_4x)
+            timer_reset(i)
+        if os.path.exists(name_1x):
+            os.remove(name_1x)
+            t.paused = not t.paused
+            if not t.paused:
+                t.running = True
 
 def timers_run():
     timers_display()
@@ -152,11 +178,11 @@ def timers_run():
     timers_start_all()
     last = time.time()
     while True:
+        check_buttons()
         current = time.time()
-        if (current - last) > 0.01:
+        if (current - last) > 1:
+        #if (current - last) > 0.01:
             last = current
-            # TODO check main button
-            # TODO check each timer key
             timers_update()
             timers_display()
             timers_show()
