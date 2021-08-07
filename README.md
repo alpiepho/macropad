@@ -46,47 +46,48 @@ TODO List
 ## Multiple Timers
 
 Leverage the demo_cp project to run up to 12 timers.  
-- Each timer will be associated with a key
-- Each timer will display on screen in form 00:00 in specific location on display
-- Each timer can count down or count up in seconds
-- Each timer can be started, paused, resume, reset with the associated key
+- [done] Each timer will be associated with a key
+- [done] Each timer will display on screen in form 00:00 in specific location on display
+- [done] Each timer can count down or count up in seconds
+- [done] Each timer can be started, paused, resume, reset with the associated key
 - Rapid Key press x4 = reset
 - Single Key press
-    - if not running -> running
-    - if running and not paused -> paused
-    - if running and paused -> not paused
-- The color of each timer will reflect the state of the timer
-    - if count down
-        - if not running -> green/dim
-        - if running and not paused
-            - 100% - 70% time remaining -> green/flashing
-            - 70% - 40% time remaining -> yellow/flashing
-            - 40% - 10% time remaining -> orange/flashing
-            - 10% - 0% time remaining -> red/flashing
-            - 0% time remaining -> red/solid
-        if running and paused -> above with solid/dim
-    - if count up
-        - if not running -> green/dim
-        - if running and not paused
-            - green/flashing
-        if running and paused -> above with solid/dim
+    - [done] if not running -> running
+    - [done] if running and not paused -> paused
+    - [done] if running and paused -> not paused
+- [done] The color of each timer will reflect the state of the timer
+    - [done] if count down
+        - [done] if not running -> green/dim
+        - [done] if running and not paused
+            - [done] 100% - 70% time remaining -> green/flashing
+            - [done] 70% - 40% time remaining -> yellow/flashing
+            - [done] 40% - 10% time remaining -> orange/flashing
+            - [done] 10% - 0% time remaining -> red/flashing
+            - [done] 0% time remaining -> red/solid
+        [done] if running and paused -> above with solid/dim
+    - [done] if count up
+        - [done] if not running -> green/dim
+        - [done] if running and not paused
+            - [done] green/flashing
+        [done] if running and paused -> above with solid/dim
 - Each timer may play tone when done?
 - Encoder is used to change overall settings
 - Rapid encoder press 4x -> reset all and enter menu
     - menu: number
+- [done]] encoder press 1x -> pause/play all
 TODO Finish
 
 - If all timers ready and waiting, display "Press 1x start, 4x reset"
-- If all timers ready and waiting, single encoder press -> start all
-- If all timers running, single encoder press -> pause all
-- If all timers running, single encoder press -> start all again
-- base structure
-- class Timer(): pass
-- t = Timer()
-- t.direction = 1 | -1
-- t.start_time in seconds
-- t.current_time in seconds
-- t.running bool
-- t.paused bool
+- [done] If all timers ready and waiting, single encoder press -> start all
+- [done] If all timers running, single encoder press -> pause all
+- [done] If all timers running, single encoder press -> start all again
+- [done] base structure
+- [done] class Timer(): pass
+- [done] t = Timer()
+- [done] t.direction = 1 | -1
+- [done] t.start_time in seconds
+- [done] t.current_time in seconds
+- [done] t.running bool
+- [done] t.paused bool
 
 TODO Finish
