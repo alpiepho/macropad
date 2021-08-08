@@ -19,6 +19,36 @@ for i in range(12):
     label.text = "00:00"
     text_areas.append(label)
 
+# Mock text areas
+last_line1 = ""
+last_line = ""
+def timers_show():
+    global timers
+    global text_areas
+    global keys_index
+    global last_line1
+    global last_line
+
+    line = ""
+    for i, ta in enumerate(text_areas):
+        if i == 0:
+            line = ta.text
+    if line != last_line1:
+        print(line)
+    last_line1 = line
+
+    line = ""
+    for i, ta in enumerate(text_areas):
+        # if i == 0:
+        #     line = ta.text + "\n"
+        if i >= keys_index:
+            line = line + ta.text + "  "
+            if (keys_index+i+1) % 3 == 0:
+                line = line + "\t"
+    if line != last_line:
+        print(line)
+    last_line = line
+
 # Mock Buttons
 def encoder_pressed():
     result = False
@@ -191,21 +221,6 @@ def timers_display():
         m = t.current % 100
         text_areas[keys_index+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
 
-def timers_show():
-    global timers
-    global text_areas
-    # Mock for command line
-    global keys_index
-    line = ""
-    for i, ta in enumerate(text_areas):
-        if i == 0:
-            line = ta.text + "\n"
-        if i >= keys_index:
-            line = line + ta.text + "  "
-            if (keys_index+i+1) % 3 == 0:
-                line = line + "\t"
-    print(line)
-
 menu_state = 0
 menu_timer_count = 1
 menu_timer_index = -1
@@ -233,7 +248,7 @@ def check_menu():
 
     menu_last_position = menu_current_position
     menu_current_position = encoder_position()
-    print("menu_state: " + str(menu_state))
+    # print("menu_state: " + str(menu_state))
 
     if menu_state == 1: # menu start
         text_areas[line1_index].text = "Setup timers..."
@@ -346,8 +361,8 @@ last = time.time()
 while True:
     check_buttons()
     current = time.time()
-    if (current - last) > 1:
-    #if (current - last) > 0.01:
+    #if (current - last) > 1:
+    if (current - last) > 0.01:
         last = current
         timers_update()
         timers_display()
