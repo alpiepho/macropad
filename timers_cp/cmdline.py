@@ -109,6 +109,7 @@ timers = []
 #         print(vars(t))
 
 def timer_add(start, delta, sound=False):
+    global timers
     t = Timer()
     t.start = 0
     t.current = 0
@@ -119,6 +120,7 @@ def timer_add(start, delta, sound=False):
         t.start = start
         t.current = start
     timers.append(t)
+    print("len(timers): " + str(len(timers)))
 
 def timer_reset(index):
     t = timers[index]
@@ -130,19 +132,25 @@ def timer_reset(index):
     t.blink = "_"
 
 def timers_start_all():
+    global timers
     for _, t in enumerate(timers):
         t.running = True
         t.paused = False
 
 def timers_reset_all():
+    global timers
     for i, _ in enumerate(timers):
         timer_reset(i)
 
 def timers_toggle_all():
+    global timers
     for _, t in enumerate(timers):
         t.paused = not t.paused 
+        if not t.paused:
+            t.running = True
 
 def timers_update():
+    global timers
     for _, t in enumerate(timers):
         if t.running:
             if not t.paused:
@@ -174,6 +182,8 @@ def timers_update():
                 t.blink = "_"       
     
 def timers_display():
+    global timers
+    global text_areas
     global keys_index
     for i, t in enumerate(timers):
         M = (t.current // 100) // 60
@@ -182,6 +192,8 @@ def timers_display():
         text_areas[keys_index+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
 
 def timers_show():
+    global timers
+    global text_areas
     # Mock for command line
     global keys_index
     line = ""
@@ -238,7 +250,7 @@ def check_menu():
             menu_state = 3
 
     elif menu_state == 3: # number timers loop
-        if menu_timer_index >= menu_timer_count:
+        if menu_timer_index >= (menu_timer_count - 1):
             menu_state = 10
         else:
             menu_timer_index = menu_timer_index + 1
@@ -252,6 +264,10 @@ def check_menu():
             menu_timer_direction = "down"
         if encoder_pressed():
             if menu_timer_direction == "up":
+                timer_add(start=0, delta=1, sound=False)
+                menu_timer_direction = "up"
+                menu_timer_start = 60
+                menu_timer_sound = "off"
                 menu_state = 3
             if menu_timer_direction == "down":
                 menu_state = 5
