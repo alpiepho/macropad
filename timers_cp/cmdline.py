@@ -8,12 +8,12 @@ class Label():
 text_areas = []
 
 
-line1_index = 0
+index_line1 = 0
 label = Label()
 label.text = "Macropad Timers"
 text_areas.append(label)
 
-keys_index = 1
+index_keys = 1
 for i in range(12):
     label = Label()
     label.text = "00:00"
@@ -25,7 +25,7 @@ last_line = ""
 def timers_show():
     global timers
     global text_areas
-    global keys_index
+    global index_keys
     global last_line1
     global last_line
 
@@ -41,9 +41,9 @@ def timers_show():
     for i, ta in enumerate(text_areas):
         # if i == 0:
         #     line = ta.text + "\n"
-        if i >= keys_index:
+        if i >= index_keys:
             line = line + ta.text + "  "
-            if (keys_index+i+1) % 3 == 0:
+            if (index_keys+i+1) % 3 == 0:
                 line = line + "\t"
     if line != last_line:
         print(line)
@@ -99,6 +99,17 @@ def encoder_position():
 # Mock sound
 def sound_play():
     print("sound")
+
+# Mock dipslay and lights
+def timers_display():
+    global timers
+    global text_areas
+    global index_keys
+    for i, t in enumerate(timers):
+        M = (t.current // 100) // 60
+        s = (t.current // 100) % 60
+        m = t.current % 100
+        text_areas[index_keys+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
 
 
 # color/blink combinations (using chars so we can share with command line)
@@ -211,16 +222,6 @@ def timers_update():
                 t.color = t.color.lower()
                 t.blink = "_"       
     
-def timers_display():
-    global timers
-    global text_areas
-    global keys_index
-    for i, t in enumerate(timers):
-        M = (t.current // 100) // 60
-        s = (t.current // 100) % 60
-        m = t.current % 100
-        text_areas[keys_index+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
-
 menu_state = 0
 menu_timer_count = 1
 menu_timer_index = -1
@@ -236,7 +237,7 @@ def seconds_to_M_s(seconds):
     return f'{M:02}:{s:02}'
 
 def check_menu():
-    global line1_index
+    global index_line1
     global menu_state
     global menu_timer_count
     global menu_timer_index
@@ -251,12 +252,12 @@ def check_menu():
     # print("menu_state: " + str(menu_state))
 
     if menu_state == 1: # menu start
-        text_areas[line1_index].text = "Setup timers..."
+        text_areas[index_line1].text = "Setup timers..."
         if encoder_pressed():
             menu_state = 2
 
     elif menu_state == 2: # number timers
-        text_areas[line1_index].text = "number timers: " + str(menu_timer_count)
+        text_areas[index_line1].text = "number timers: " + str(menu_timer_count)
         if menu_current_position > menu_last_position:
             menu_timer_count = min(12, menu_timer_count + 1)
         if menu_current_position < menu_last_position:
@@ -272,7 +273,7 @@ def check_menu():
             menu_state = 4
 
     elif menu_state == 4: # timer direction
-        text_areas[line1_index].text = "tmr" + str(menu_timer_index+1) + " direction: " + menu_timer_direction
+        text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " direction: " + menu_timer_direction
         if menu_current_position > menu_last_position:
             menu_timer_direction = "up"
         if menu_current_position < menu_last_position:
@@ -288,7 +289,7 @@ def check_menu():
                 menu_state = 5
 
     elif menu_state == 5: # timer start
-        text_areas[line1_index].text = "tmr" + str(menu_timer_index+1) + " start: " + seconds_to_M_s(menu_timer_start)
+        text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " start: " + seconds_to_M_s(menu_timer_start)
         if menu_current_position > menu_last_position:
             menu_timer_start = min(3600, menu_timer_start + 1)
         if menu_current_position < menu_last_position:
@@ -297,7 +298,7 @@ def check_menu():
             menu_state = 6
 
     elif menu_state == 6: # timer sound
-        text_areas[line1_index].text = "tmr" + str(menu_timer_index+1) + " sound: " + menu_timer_sound
+        text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " sound: " + menu_timer_sound
         if menu_current_position > menu_last_position:
             menu_timer_sound = "y"
         if menu_current_position < menu_last_position:
@@ -317,7 +318,7 @@ def check_menu():
             menu_state = 3
 
     elif menu_state == 10: # menu done
-        text_areas[line1_index].text = "Macropad Timers"
+        text_areas[index_line1].text = "Macropad Timers"
         menu_state = 0
         menu_timer_count = 1
         menu_timer_index = -1
