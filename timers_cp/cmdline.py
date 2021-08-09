@@ -111,24 +111,27 @@ def timers_display():
         m = t.current % 100
         text_areas[index_keys+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
 
+def timers_dim(dim):
+    global timers
+    for _, t in enumerate(timers):
+        if dim:
+            t.color = t.color.lower()
+        else:
+            t.color = t.color.upper()
 
 # color/blink combinations (using chars so we can share with command line)
 # G_  - green, solid
 # G.  - green, blink
 # g_  - green, solid, dim
-# g.  - green, blink, dim
 # Y_  - yellow, solid
 # Y.  - yellow, blink
 # y_  - yellow, solid, dim
-# y.  - yellow, blink, dim
 # O_  - orange, solid
 # O.  - orange, blink
 # o_  - orange, solid, dim
-# o.  - orange, blink, dim
 # R_  - red, solid
 # R.  - red, blink
 # r_  - red, solid, dim
-# r.  - red, blink, dim
 # S   - sound
 
 # base Timer class and functions
@@ -138,7 +141,7 @@ class Timer():
     current = 0
     running = False
     paused = False
-    color = "g"
+    color = "G"
     blink = "_"
     sound = False
 
@@ -161,7 +164,7 @@ def timer_add(start, delta, sound=False):
         t.start = start
         t.current = start
     timers.append(t)
-    print("len(timers): " + str(len(timers)))
+    # print("len(timers): " + str(len(timers)))
 
 def timer_reset(index):
     t = timers[index]
@@ -330,7 +333,9 @@ def check_buttons():
     global timers
 
     if menu_state > 0:
+        timers_dim(dim=True)
         return
+    timers_dim(dim=False)
     if encoder_pressed():
         timers_toggle_all()
     if encoder_long_pressed():

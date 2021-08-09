@@ -12,6 +12,7 @@ macropad = MacroPad()
 # turn off pixels
 for i in range(len(macropad.pixels)):
     macropad.pixels[i] = 0x000000
+macropad.pixels.brightness = 1.0
 
 # for display
 # set up (empty) text areas in a text_group
@@ -88,7 +89,7 @@ def encoder_long_pressed():
     result = False
     if macropad.encoder_switch:
         encoder_pressed_count = encoder_pressed_count + 1
-        if encoder_pressed_count > 200:
+        if encoder_pressed_count > 200: # 200 x 0.01 = 2 seconds
             result = True
             encoder_pressed_count = 0
     else: 
@@ -117,7 +118,7 @@ def key_long_pressed(index):
         if event.pressed and event.key_number == index:
             if index == key_pressed_index:
                 key_pressed_count = key_pressed_count + 1
-                if key_pressed_count > 200:
+                if key_pressed_count > 200: # 200 x 0.01 = 2 seconds
                     result = True
                     key_pressed_count = 0
             else:
@@ -146,6 +147,7 @@ def timers_display():
     global timers
     global text_areas
     global index_keys
+    current = time.time()
     for i, t in enumerate(timers):
         M = (t.current // 100) // 60
         s = (t.current // 100) % 60
@@ -154,22 +156,66 @@ def timers_display():
         #text_areas[index_keys+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
         # https://forums.blinkstick.com/t/blinkstick-led-tips-info/406/2
         color_value = 0x000000
-        if t.color == "G" or t.color == "g":
+        if t.color == "G":
             color_value = 0x00FF00
-        if t.color == "Y" or t.color == "y":
+        if t.color == "Y":
             color_value = 0xFFFF00
-        if t.color == "O" or t.color == "o":
+        if t.color == "O":
             color_value = 0xFFCC33
-        if t.color == "R" or t.color == "r":
+        if t.color == "R":
             color_value = 0xFF0000
         macropad.pixels[i] = colorwheel(color_value)
-        # TODO: add blinking
+
+        # process blink
+        if t.blink == ".":
+            if (current - t.blink_last) > 0.5:
+                t.blink_on = not t.blink_on
+                if not t.blink_on:
+                    macropad.pixels[i] = colorwheel(0xFFFFFF)
+            t.blink_last = current
 
 
+def timers_dim(dim):
+    if dim:
+        macropad.pixels.brightness = 0.2
+    else:
+        macropad.pixels.brightness = 1.0
 
-# TODO: add Timer stuff here
+# Timer core logic
 timers = []
 
+class Timer():
+    delta = 1
+    start = 0
+    current = 0
+    running = False
+    paused = False
+    color = "G"
+    blink = "_"
+    blink_on = False
+    blink_last = 0
+    sound = False
+
+def timer_add(start, delta, sound=False):
+    global timers
+    t = Timer()
+    t.start = 0
+    t.current = 0
+    t.running = False
+    t.paused = True
+    t.delta = delta
+    if delta < 0:
+        t.start = start
+        t.current = start
+    timers.append(t)
+
+# TODO: add Timer stuff here
+
+
+# DEBUG
+timer_add(start=0, delta=1)
+timer_add(start=10000, delta=-1)
+timers[0].blink = "."
 
 # loop
 last = time.time()
@@ -198,18 +244,23 @@ while True:
         # TEST sound
         sound_play()
 
-    # TODO: TEST encoder long press
-
-    # change colors of all buttons 
-    # for i in range(len(macropad.pixels)):
-    #     color_value = ((i * 256 / len(macropad.pixels)) + loops) % 255
-    #     macropad.pixels[i] = colorwheel(color_value)
+    # TEST encoder long press
+    if encoder_long_pressed():
+        print("Encoder long pressed")
+        # TEST dim
+        timers_dim(dim=True)
  
     # check all keys, print KEYn if presses
     for i in range(12):
+        # TEST key press
         if key_pressed(i):
+            text_areas[index_keys + i].text = "key" + str(i + 1)
+        else:
+            text_areas[index_keys + i].text = ""
+
+        # TEST key long press
+        if key_long_pressed(i):
             text_areas[index_keys + i].text = "KEY" + str(i + 1)
         else:
             text_areas[index_keys + i].text = ""
-        # TODO: TEST encoder long press
 
