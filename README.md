@@ -53,8 +53,8 @@ Leverage the demo_cp project to run up to 12 timers.
 - [done] Each timer will display on screen in form 00:00 in specific location on display
 - [done] Each timer can count down or count up in seconds
 - [done] Each timer can be started, paused, resume, reset with the associated key
-- Long Key press = reset
-- Single Key press
+- [done] Long Key press = reset
+- [done] Single Key press
     - [done] if not running -> running
     - [done] if running and not paused -> paused
     - [done] if running and paused -> not paused
@@ -73,10 +73,10 @@ Leverage the demo_cp project to run up to 12 timers.
         - [done] if running and not paused
             - [done] green/flashing
         [done] if running and paused -> above with solid/dim
-- Each timer may play tone when done?
-- Encoder is used to change overall settings
-- Long encoder press  -> reset all and enter menu
-    - menu: number
+- [done] Each timer may play tone when done?
+- [done] Encoder is used to change overall settings
+- [done] Long encoder press  -> reset all and enter menu
+    - [done] menu: number
 - [done]] encoder press -> pause/play all
 - [done] menu states:
 - [done] - long press -> show help
@@ -102,7 +102,7 @@ Leverage the demo_cp project to run up to 12 timers.
 - [done]          - press -> accept
 - [done] ""enc. press/hold -> start/reset""
 
-- If all timers ready and waiting, display "enc. press/hold -> start/reset"
+- [done] If all timers ready and waiting, display "enc. press/hold -> start/reset"
 - [done] If all timers ready and waiting, single encoder press -> start all
 - [done] If all timers running, single encoder press -> pause all
 - [done] If all timers running, single encoder press -> start all again
@@ -115,4 +115,10 @@ Leverage the demo_cp project to run up to 12 timers.
 - [done] t.running bool
 - [done] t.paused bool
 
-TODO Finish
+- [done] build code_test.py to test hw related functions
+- turn on code_test.py
+- merge in cmdline.py core timer logic
+- turn on full timer application
+- review for refactor
+- update README for how it works and how to use it
+
