@@ -43,6 +43,9 @@ TODO List
 - [done] refactor and clean up python
 - [done] how to run a clock
 
+NOTE: I2C documentation at: https://github.com/adafruit/Adafruit_CircuitPython_SSD1306
+
+
 ## Multiple Timers
 
 Leverage the demo_cp project to run up to 12 timers.  
