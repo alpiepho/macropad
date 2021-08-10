@@ -1,10 +1,18 @@
 import time
 import board
+import busio
 import displayio
 import terminalio
 from adafruit_display_text import label  # display
 from adafruit_macropad import MacroPad   # tone
 from rainbowio import colorwheel
+
+
+# depends on 
+# Adafruit CircuitPython
+# Bus Device
+# Adafruit framebuf
+import adafruit_ssd1306
 
 # NOTE: This circuitpython applications tries to follow the flow of the arduino demo.ino
 # that is pre-installed on the Adafruit MacroPad board.
@@ -13,8 +21,13 @@ from rainbowio import colorwheel
 # https://github.com/adafruit/Adafruit_CircuitPython_Display_Text
 
 macropad = MacroPad()
-macropad.play_tone(988, 0.1)
-macropad.play_tone(1319, 0.2)
+
+# Play Tone
+# macropad.play_tone(1319, 0.1)
+# macropad.play_tone(988, 0.1)
+
+# Init I2C
+i2c = busio.I2C(board.SCL, board.SDA)
 
 # for display
 # set up (empty) text areas in a text_group
@@ -74,6 +87,22 @@ for ta in text_areas:
 text_areas[index_line1].text = "* Adafruit Macropad *"
 board.DISPLAY.show(text_group)
 
+# scan i2c
+i2c.try_lock()
+i2c_list = i2c.scan()
+i2c.unlock()
+oled_addr = 0
+oled_x = 0
+oled_y = 0
+oled_deltax = 10
+oled_deltay = 1
+if len(i2c_list) > 0:
+    text_areas[index_line3].text = "I2C: " + str(i2c_list)
+    oled_addr = i2c_list[0]
+    oled = adafruit_ssd1306.SSD1306_I2C(128, 32, i2c, addr=60)
+    oled.fill(0)
+    oled.show()
+
 # loop
 last_position = None
 loops = 0
@@ -83,9 +112,6 @@ while True:
     if last_position is None or position != last_position:
         last_position = position
         text_areas[index_line2].text = "Rotary encoder: " + str(position)
-
-    # scan i2c
-    # TODO
 
     # check encoder press
     if macropad.encoder_switch:
@@ -98,6 +124,22 @@ while True:
     for i in range(len(macropad.pixels)):
         color_value = ((i * 256 / len(macropad.pixels)) + loops) % 255
         macropad.pixels[i] = colorwheel(color_value)
+
+    # if i2c_addr set, assume the is an SSD1306 Oled display
+    if oled_addr > 0:
+        oled.pixel(oled_x, oled_y, 0)
+        if oled_x > 127:
+            oled_deltax = -10
+            oled_y = oled_y + 1
+        if oled_x < 0:
+            oled_deltax = 10
+            oled_y = oled_y + 1
+        oled_x = oled_x + oled_deltax
+        if oled_y > 31:
+            oled_y = 0
+        oled.pixel(oled_x, oled_y, 1)
+        oled.show()
+
  
     # check all keys, print KEYn if presses
     event = macropad.keys.events.get()
