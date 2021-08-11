@@ -79,61 +79,27 @@ def timers_show():
     pass
 
 # Macropad Buttons
+encoder_pressed_count = 0
 def encoder_pressed():
     global macropad
+    global encoder_pressed_count
     result = False
     if macropad.encoder_switch:
-        result = True
-    return result
-
-# encoder_pressed_count = 0
-# def encoder_long_pressed():
-#     global macropad
-#     global encoder_pressed_count
-#     result = False
-#     if macropad.encoder_switch:
-#         encoder_pressed_count = encoder_pressed_count + 1
-#         if encoder_pressed_count > 200: # 200 x 0.01 = 2 seconds
-#             result = True
-#             encoder_pressed_count = 0
-#     else: 
-#         encoder_pressed_count = 0
-#     return result
-
-def key_pressed(index):
-    global macropad
-    result = False
-    event = macropad.keys.events.get()
-    if event:
-        print(str(index) + " " + str(event.key_number))
-        if event.pressed and event.key_number == index:
+        encoder_pressed_count = encoder_pressed_count + 1
+        if encoder_pressed_count > 1:
             result = True
+            encoder_pressed_count = 0
+    else: 
+        encoder_pressed_count = 0
     return result
 
-# key_pressed_index = -1
-# key_pressed_count = 0
-# def key_long_pressed(index):
-#     # TODO: will macropad event stay active when pressed and held, or is it edge triggered?
-#     global macropad
-#     global key_pressed_index
-#     global key_pressed_count
-#     result = False
-#     event = macropad.keys.events.get()
-#     if event:
-#         if event.pressed and event.key_number == index:
-#             if index == key_pressed_index:
-#                 key_pressed_count = key_pressed_count + 1
-#                 if key_pressed_count > 200: # 200 x 0.01 = 2 seconds
-#                     result = True
-#                     key_pressed_count = 0
-#             else:
-#                 key_pressed_index = index
-#                 key_pressed_count = 0
-#             result = True
-#         else:
-#             key_pressed_index = -1
-#             key_pressed_count = 0
-#     return result
+def key_pressed():
+    event = macropad.keys.events.get()
+    if event and event.pressed:
+        i = event.key_number
+        timers[i].paused = not timers[i].paused
+        if not timers[i].paused:
+            timers[i].running = True
 
 # Macropad Encoder
 encoder_value = 0
@@ -148,11 +114,10 @@ def sound_play():
     macropad.play_tone(988, 0.1)
 
 # Macropad display and lights
-def timers_display():
+def timers_display(current):
     global timers
     global text_areas
     global index_keys
-    current = time.time()
     for i in range(12):
         if i > len(timers):
             text_areas[index_keys+i].text = ""
@@ -162,7 +127,6 @@ def timers_display():
         s = (t.current // 100) % 60
         m = t.current % 100
         text_areas[index_keys+i].text = f'{M:2}:{s:02}{m:02}'
-        # https://forums.blinkstick.com/t/blinkstick-led-tips-info/406/2
         color_value = 0x000000
         if t.color == "G":
             color_value = 0x00FF00
@@ -176,11 +140,11 @@ def timers_display():
 
         # process blink
         if t.blink == ".":
-            if (current - t.blink_last) > 0.1:
+            if (current - t.blink_last) > 20:
                 t.blink_on = not t.blink_on
                 if not t.blink_on:
                     macropad.pixels[i] = 0x000000
-            t.blink_last = current
+                t.blink_last = current
 
 
 def timers_dim(dim):
@@ -220,6 +184,7 @@ def timer_add(start, delta, sound=False):
     if delta < 0:
         t.start = start
         t.current = start
+    t.sound = sound
     timers.append(t)
 
 # TODO: add Timer stuff here
@@ -247,7 +212,7 @@ def timers_toggle_all():
     global timers
     for _, t in enumerate(timers):
         t.paused = not t.paused 
-        if not t.paused:
+        if not t.running and not t.paused:
             t.running = True
 
 def timers_update():
@@ -274,12 +239,12 @@ def timers_update():
                         t.blink = "_"
                         t.running = False
                         if t.sound:
+                            print("play sound")
                             sound_play()
                 else:
                     t.color = "G"
             else:
                 # update color
-                t.color = t.color.lower()
                 t.blink = "_"       
     
 menu_state = 0
@@ -394,36 +359,18 @@ def check_buttons():
         return
     timers_dim(dim=False)
     if encoder_pressed():
-    #     timers_toggle_all()
-    # if encoder_long_pressed():
         timers_reset_all()
         timers = []
         menu_state = 1
-    for i, t in enumerate(timers):
-        if key_pressed(index=i):
-            t.paused = not t.paused
-            if not t.paused:
-                t.running = True
-        # if key_long_pressed(index=i):
-        #     timer_reset(i)
-
+    key_pressed()
 
 # DEBUG
-timer_add(start=0, delta=1)
-timer_add(start=10000, delta=-1)
 # timer_add(start=0, delta=1)
 # timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timers[0].blink = "."
+timer_add(start=1000, delta=-5, sound=True)
 
 # Add to Arduino setup
-timers_display()
+timers_display(0)
 timers_show()
 
 timers_start_all()
@@ -431,12 +378,11 @@ current = 0
 
 # Arduino loop
 while True:
-    if (current % 100) == 0:
-        check_buttons()
+    check_buttons()
     current = current + 1
-    if (current % 10) == 0: # TODO test scale
-        timers_update()
-        timers_display()
-        timers_show()
-        check_menu()
+    # TODO test scale
+    timers_update()
+    timers_display(current)
+    timers_show()
+    check_menu()
 
