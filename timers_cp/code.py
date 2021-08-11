@@ -153,6 +153,10 @@ def timers_display():
     global text_areas
     global index_keys
     current = time.time()
+    for i in range(12):
+        if i > len(timers):
+            text_areas[index_keys+i].text = ""
+            macropad.pixels[i] = 0x000000
     for i, t in enumerate(timers):
         M = (t.current // 100) // 60
         s = (t.current // 100) % 60
@@ -392,7 +396,7 @@ def check_buttons():
     if encoder_pressed():
     #     timers_toggle_all()
     # if encoder_long_pressed():
-        # timers_reset_all()
+        timers_reset_all()
         timers = []
         menu_state = 1
     for i, t in enumerate(timers):
@@ -423,16 +427,14 @@ timers_display()
 timers_show()
 
 timers_start_all()
-last = 0
 current = 0
-last_position = None
 
 # Arduino loop
 while True:
-    check_buttons()
+    if (current % 100) == 0:
+        check_buttons()
     current = current + 1
-    if (current - last) > 10: # TODO test scale
-        last = current
+    if (current % 10) == 0: # TODO test scale
         timers_update()
         timers_display()
         timers_show()
