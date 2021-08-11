@@ -32,7 +32,7 @@ y = y + ydelta
 index_line2 = len(text_areas)
 ta = label.Label(terminalio.FONT, text="")
 ta.anchor_point = (0.0, 0.0)
-ta.anchored_position = (0, y)
+ta.anchored_position = (0, y-8)
 text_areas.append(ta)
 y = y + ydelta
 
@@ -70,7 +70,7 @@ text_group = displayio.Group()
 for ta in text_areas:
     text_group.append(ta)
 
-text_areas[index_line1].text = "Macropad Timers"
+text_areas[index_line1].text = "macropad timers"
 board.DISPLAY.show(text_group)
 
 
@@ -152,8 +152,7 @@ def timers_display():
         M = (t.current // 100) // 60
         s = (t.current // 100) % 60
         m = t.current % 100
-        text_areas[index_keys+i].text = f'{M:02}:{s:02}:{m:02}'
-        #text_areas[index_keys+i].text = f'{M:02}:{s:02}:{m:02} {t.color}{t.blink}'
+        text_areas[index_keys+i].text = f'{M:2}:{s:02}{m:02}'
         # https://forums.blinkstick.com/t/blinkstick-led-tips-info/406/2
         color_value = 0x000000
         if t.color == "G":
@@ -164,14 +163,14 @@ def timers_display():
             color_value = 0xFFCC33
         if t.color == "R":
             color_value = 0xFF0000
-        macropad.pixels[i] = colorwheel(color_value)
+        macropad.pixels[i] = color_value
 
         # process blink
         if t.blink == ".":
-            if (current - t.blink_last) > 0.5:
+            if (current - t.blink_last) > 0.1:
                 t.blink_on = not t.blink_on
                 if not t.blink_on:
-                    macropad.pixels[i] = colorwheel(0xFFFFFF)
+                    macropad.pixels[i] = 0x000000
             t.blink_last = current
 
 
@@ -215,6 +214,15 @@ def timer_add(start, delta, sound=False):
 # DEBUG
 timer_add(start=0, delta=1)
 timer_add(start=10000, delta=-1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
 timers[0].blink = "."
 
 # loop
@@ -236,13 +244,14 @@ while True:
     position = encoder_position()
     if last_position is None or position != last_position:
         last_position = position
-        text_areas[index_line2].text = "Rotary encoder: " + str(position)
+        text_areas[index_line2].text = "rotary encoder: " + str(position)
+        timers_dim(dim=False)
 
-    # TEST encoder press
-    if encoder_pressed():
-        print("Encoder pressed")
-        # TEST sound
-        sound_play()
+    # # TEST encoder press
+    # if encoder_pressed():
+    #     print("Encoder pressed")
+    #     # TEST sound
+    #     sound_play()
 
     # TEST encoder long press
     if encoder_long_pressed():
@@ -250,17 +259,17 @@ while True:
         # TEST dim
         timers_dim(dim=True)
  
-    # check all keys, print KEYn if presses
-    for i in range(12):
-        # TEST key press
-        if key_pressed(i):
-            text_areas[index_keys + i].text = "key" + str(i + 1)
-        else:
-            text_areas[index_keys + i].text = ""
+    # # check all keys, print KEYn if presses
+    # for i in range(12):
+    #     # TEST key press
+    #     if key_pressed(i):
+    #         text_areas[index_keys + i].text = "key" + str(i + 1)
+    #     else:
+    #         text_areas[index_keys + i].text = ""
 
-        # TEST key long press
-        if key_long_pressed(i):
-            text_areas[index_keys + i].text = "KEY" + str(i + 1)
-        else:
-            text_areas[index_keys + i].text = ""
+    #     # TEST key long press
+    #     if key_long_pressed(i):
+    #         text_areas[index_keys + i].text = "KEY" + str(i + 1)
+    #     else:
+    #         text_areas[index_keys + i].text = ""
 
