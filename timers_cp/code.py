@@ -1,4 +1,3 @@
-import time
 import board
 import displayio
 import terminalio
@@ -6,16 +5,24 @@ from adafruit_display_text import label  # display
 from adafruit_macropad import MacroPad   # tone
 from rainbowio import colorwheel
 
-DELTA = 7
+#############################
+# Constants/Globals
+#############################
+
+DELTA = 7 # in RS4020 Macropad, this approximates real time
+MAX_KEYS = 12
 
 macropad = MacroPad()
+
+#############################
+# Setup - Hardware
+#############################
 
 # turn off pixels
 for i in range(len(macropad.pixels)):
     macropad.pixels[i] = 0x000000
 macropad.pixels.brightness = 1.0
 
-# for display
 # set up (empty) text areas in a text_group
 DISPLAY_WIDTH = 128
 DISPLAY_HEIGHT = 64
@@ -74,12 +81,20 @@ for ta in text_areas:
 text_areas[index_line1].text = "macropad timers"
 board.DISPLAY.show(text_group)
 
+#############################
+# Macropad Functions
+#############################
 
-# Show text areas
-def timers_show():
-    pass
+def sound_play():
+    global macropad
+    macropad.play_tone(1319, 0.1)
+    macropad.play_tone(988, 0.1)
 
-# Macropad Buttons
+encoder_value = 0
+def encoder_position():
+    global macropad
+    return macropad.encoder
+
 encoder_pressed_count = 0
 def encoder_pressed():
     global macropad
@@ -108,24 +123,18 @@ def key_pressed(current):
                 timer_reset(i)
             timers[i].pressed_last = 0
 
-# Macropad Encoder
-encoder_value = 0
-def encoder_position():
-    global macropad
-    return macropad.encoder
-
-# Macropad sound
-def sound_play():
-    global macropad
-    macropad.play_tone(1319, 0.1)
-    macropad.play_tone(988, 0.1)
-
-# Macropad display and lights
 def timers_display(current):
     global timers
     global text_areas
     global index_keys
-    for i in range(12):
+    global menu_state
+
+    if menu_state > 0:
+        for i in range(MAX_KEYS):
+            text_areas[index_keys+i].text = ""
+            macropad.pixels[i] = 0x000000
+        return
+    for i in range(MAX_KEYS):
         if i > len(timers):
             text_areas[index_keys+i].text = ""
             macropad.pixels[i] = 0x000000
@@ -144,14 +153,16 @@ def timers_display(current):
                     macropad.pixels[i] = 0x000000
                 t.blink_last = current
 
-
 def timers_dim(dim):
     if dim:
         macropad.pixels.brightness = 0.2
     else:
         macropad.pixels.brightness = 1.0
 
-# Timer core logic
+
+#############################
+# Timer Functions
+#############################
 timers = []
 
 class Timer():
@@ -181,7 +192,6 @@ def timer_add(start, delta, sound=False):
     t.sound = sound
     timers.append(t)
 
-# TODO: add Timer stuff here
 def timer_reset(index):
     t = timers[index]
     t.current = 0
@@ -240,7 +250,12 @@ def timers_update():
             else:
                 # update color
                 t.blink = "_"       
-    
+
+
+#############################
+# Menu Functions
+#############################
+
 menu_state = 0
 menu_timer_count = 1
 menu_timer_index = -1
@@ -271,13 +286,16 @@ def check_menu():
 
     if menu_state == 1: # menu start
         text_areas[index_line1].text = "setup..."
+        text_areas[index_line2].text = ""
+        text_areas[index_line3].text = ""
+        text_areas[index_line4].text = ""
         if encoder_pressed():
             menu_state = 2
 
     elif menu_state == 2: # number timers
         text_areas[index_line1].text = "number timers: " + str(menu_timer_count)
         if menu_current_position > menu_last_position:
-            menu_timer_count = min(12, menu_timer_count + 1)
+            menu_timer_count = min(MAX_KEYS, menu_timer_count + 1)
         if menu_current_position < menu_last_position:
             menu_timer_count = max(1, menu_timer_count - 1)
         if encoder_pressed():
@@ -343,6 +361,10 @@ def check_menu():
         timers_reset_all()
 
 
+#############################
+# Button Functions
+#############################
+
 def check_buttons(current):
     global menu_state
     global timers
@@ -357,24 +379,27 @@ def check_buttons(current):
         menu_state = 1
     key_pressed(current)
 
+
+#############################
+# Setup - Application
+#############################
+
 # DEBUG
 # timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=1000, delta=(-1*DELTA), sound=False)
+# timer_add(start=0, delta=DELTA)
+# timer_add(start=1000, delta=(-1*DELTA), sound=False)
 
-# Add to Arduino setup
-timers_display(0)
-timers_show()
-
-timers_start_all()
 current = 0
+timers_display(current)
+timers_start_all()
 
-# Arduino loop
+#############################
+# Main Loop - Application
+#############################
 while True:
-    check_buttons(current)
     current = current + 1
+    check_buttons(current)
+    check_menu()
     timers_update()
     timers_display(current)
-    timers_show()
-    check_menu()
 

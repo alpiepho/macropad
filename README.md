@@ -122,3 +122,4 @@ Leverage the demo_cp project to run up to 12 timers.
 - review for refactor
 - update README for how it works and how to use it
 - CONSTANTS
+- gather needed libs
