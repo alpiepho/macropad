@@ -6,6 +6,7 @@ from adafruit_display_text import label  # display
 from adafruit_macropad import MacroPad   # tone
 from rainbowio import colorwheel
 
+DELTA = 7
 
 macropad = MacroPad()
 
@@ -93,13 +94,19 @@ def encoder_pressed():
         encoder_pressed_count = 0
     return result
 
-def key_pressed():
+def key_pressed(current):
     event = macropad.keys.events.get()
-    if event and event.pressed:
+    if event:
         i = event.key_number
-        timers[i].paused = not timers[i].paused
-        if not timers[i].paused:
-            timers[i].running = True
+        if event.pressed:
+            timers[i].paused = not timers[i].paused
+            if not timers[i].paused:
+                timers[i].running = True
+            timers[i].pressed_last = current
+        if event.released:
+            if (current - timers[i].pressed_last) > 10:
+                timer_reset(i)
+            timers[i].pressed_last = 0
 
 # Macropad Encoder
 encoder_value = 0
@@ -125,22 +132,13 @@ def timers_display(current):
     for i, t in enumerate(timers):
         M = (t.current // 100) // 60
         s = (t.current // 100) % 60
-        m = t.current % 100
-        text_areas[index_keys+i].text = f'{M:2}:{s:02}{m:02}'
-        color_value = 0x000000
-        if t.color == "G":
-            color_value = 0x00FF00
-        if t.color == "Y":
-            color_value = 0xFFFF00
-        if t.color == "O":
-            color_value = 0xFFCC33
-        if t.color == "R":
-            color_value = 0xFF0000
-        macropad.pixels[i] = color_value
+        m = (t.current % 100) // 10
+        text_areas[index_keys+i].text = f'{M:2}:{s:02}.{m:1}'
+        macropad.pixels[i] = t.color
 
         # process blink
         if t.blink == ".":
-            if (current - t.blink_last) > 20:
+            if (current - t.blink_last) > 4:
                 t.blink_on = not t.blink_on
                 if not t.blink_on:
                     macropad.pixels[i] = 0x000000
@@ -157,21 +155,17 @@ def timers_dim(dim):
 timers = []
 
 class Timer():
-    delta = 1
+    delta = DELTA
     start = 0
     current = 0
     running = False
     paused = False
-    color = "G"
+    color = 0x00FF00 # green
     blink = "_"
     blink_on = False
     blink_last = 0
     sound = False
-
-# DEBUG
-# def dump_timers():
-#     for t in timers:
-#         print(vars(t))
+    pressed_last = 0
 
 def timer_add(start, delta, sound=False):
     global timers
@@ -194,7 +188,7 @@ def timer_reset(index):
     t.paused = True
     if t.delta < 0:
         t.current = t.start
-    t.color = "g"
+    t.color = 0x00FF00 # green
     t.blink = "_"
 
 def timers_start_all():
@@ -226,15 +220,15 @@ def timers_update():
                 if t.delta < 0:
                     # update color
                     percent = 100.0 * t.current / t.start
-                    t.color = "G"
+                    t.color = 0x00FF00 # green
                     if percent < 70.0 :
-                        t.color = "Y"
+                        t.color = 0xFFFF00 # yellow
                     if percent < 40.0 :
-                        t.color = "O"
+                        t.color = 0xFF8C00 # orange
                     if percent < 10.0 :
-                        t.color = "R"
+                        t.color = 0xFF0000 # red
                     if percent < 10.0 :
-                        t.color = "R"
+                        t.color = 0xFF0000 # red
                     if t.current == 0:
                         t.blink = "_"
                         t.running = False
@@ -242,7 +236,7 @@ def timers_update():
                             print("play sound")
                             sound_play()
                 else:
-                    t.color = "G"
+                    t.color = 0x00FF00 # green
             else:
                 # update color
                 t.blink = "_"       
@@ -274,7 +268,6 @@ def check_menu():
 
     menu_last_position = menu_current_position
     menu_current_position = encoder_position()
-    # print("menu_state: " + str(menu_state))
 
     if menu_state == 1: # menu start
         text_areas[index_line1].text = "setup..."
@@ -305,7 +298,7 @@ def check_menu():
             menu_timer_direction = "down"
         if encoder_pressed():
             if menu_timer_direction == "up":
-                timer_add(start=0, delta=1, sound=False)
+                timer_add(start=0, delta=DELTA, sound=False)
                 menu_timer_direction = "up"
                 menu_timer_start = 60
                 menu_timer_sound = "off"
@@ -330,9 +323,9 @@ def check_menu():
             menu_timer_sound = "n"
         if encoder_pressed():
             # create timer
-            delta = 1
+            delta = DELTA
             if menu_timer_direction == "down":
-                delta = -1
+                delta = -1 * DELTA
             sound = False
             if menu_timer_sound == "y":
                 sound = True
@@ -350,7 +343,7 @@ def check_menu():
         timers_reset_all()
 
 
-def check_buttons():
+def check_buttons(current):
     global menu_state
     global timers
 
@@ -362,12 +355,12 @@ def check_buttons():
         timers_reset_all()
         timers = []
         menu_state = 1
-    key_pressed()
+    key_pressed(current)
 
 # DEBUG
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-timer_add(start=1000, delta=-5, sound=True)
+# timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=1000, delta=(-1*DELTA), sound=False)
 
 # Add to Arduino setup
 timers_display(0)
@@ -378,9 +371,8 @@ current = 0
 
 # Arduino loop
 while True:
-    check_buttons()
+    check_buttons(current)
     current = current + 1
-    # TODO test scale
     timers_update()
     timers_display(current)
     timers_show()
