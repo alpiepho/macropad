@@ -11,9 +11,6 @@ from rainbowio import colorwheel
 
 DELTA = 7 # in RS4020 Macropad, this approximates real time
 MAX_KEYS = 12
-BLINK_COUNT = 4
-BRIGHTNESS_LOW = 0.2
-BRIGHTNESS_HIGH = 1.0
 
 macropad = MacroPad()
 
@@ -137,33 +134,30 @@ def timers_display(current):
             text_areas[index_keys+i].text = ""
             macropad.pixels[i] = 0x000000
         return
-    # for i in range(MAX_KEYS):
-    #     if i > len(timers):
-    #         text_areas[index_keys+i].text = ""
-    #         macropad.pixels[i] = 0x000000
+    for i in range(MAX_KEYS):
+        if i > len(timers):
+            text_areas[index_keys+i].text = ""
+            macropad.pixels[i] = 0x000000
     for i, t in enumerate(timers):
         M = (t.current // 100) // 60
         s = (t.current // 100) % 60
         m = (t.current % 100) // 10
-        text = f'{M:2}:{s:02}.{m:1}'
-        if t.text_last != text:
-            text_areas[index_keys+i].text = text
-            t.text_last = text
-            macropad.pixels[i] = t.color
+        text_areas[index_keys+i].text = f'{M:2}:{s:02}.{m:1}'
+        macropad.pixels[i] = t.color
 
-            # process blink
-            if t.blink == ".":
-                if (current - t.blink_last) > BLINK_COUNT:
-                    t.blink_on = not t.blink_on
-                    if not t.blink_on:
-                        macropad.pixels[i] = 0x000000
-                    t.blink_last = current
+        # process blink
+        if t.blink == ".":
+            if (current - t.blink_last) > 4:
+                t.blink_on = not t.blink_on
+                if not t.blink_on:
+                    macropad.pixels[i] = 0x000000
+                t.blink_last = current
 
 def timers_dim(dim):
     if dim:
-        macropad.pixels.brightness = BRIGHTNESS_LOW
+        macropad.pixels.brightness = 0.2
     else:
-        macropad.pixels.brightness = BRIGHTNESS_HIGH
+        macropad.pixels.brightness = 1.0
 
 
 #############################
@@ -183,7 +177,6 @@ class Timer():
     blink_last = 0
     sound = False
     pressed_last = 0
-    text_last = ""
 
 def timer_add(start, delta, sound=False):
     global timers
@@ -226,7 +219,7 @@ def timers_toggle_all():
         if not t.running and not t.paused:
             t.running = True
 
-def timers_update(current):
+def timers_update():
     global timers
     for _, t in enumerate(timers):
         if t.running:
@@ -236,7 +229,6 @@ def timers_update(current):
                 t.blink = "."
                 if t.delta < 0:
                     # update color
-                    # TODO: pre compute these as integers and test vs current
                     percent = 100.0 * t.current / t.start
                     t.color = 0x00FF00 # green
                     if percent < 70.0 :
@@ -278,7 +270,7 @@ def seconds_to_M_s(seconds):
     s = (seconds) % 60
     return f'{M:02}:{s:02}'
 
-def check_menu(current):
+def check_menu():
     global index_line1
     global menu_state
     global menu_timer_count
@@ -288,9 +280,6 @@ def check_menu(current):
     global menu_timer_sound
     global menu_current_position
     global menu_last_position
-
-    if menu_state == 0:
-        return
 
     menu_last_position = menu_current_position
     menu_current_position = encoder_position()
@@ -329,7 +318,7 @@ def check_menu(current):
             if menu_timer_direction == "up":
                 timer_add(start=0, delta=DELTA, sound=False)
                 menu_timer_direction = "up"
-                menu_timer_start = 0
+                menu_timer_start = 60
                 menu_timer_sound = "off"
                 menu_state = 3
             if menu_timer_direction == "down":
@@ -410,7 +399,7 @@ timers_start_all()
 while True:
     current = current + 1
     check_buttons(current)
-    check_menu(current)
-    timers_update(current)
+    check_menu()
+    timers_update()
     timers_display(current)
 
