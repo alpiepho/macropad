@@ -11,11 +11,8 @@ from rainbowio import colorwheel
 
 DELTA = 7 # in RS4020 Macropad, this approximates real time
 MAX_KEYS = 12
-
-BLINK_LOOPS = 8
-ENCODER_LOOPS = 1
-KEY_LOOPS = 10
-
+BLINK_COUNT = 8
+ENCODER_COUNT = 1
 BRIGHTNESS_LOW = 0.2
 BRIGHTNESS_HIGH = 1.0
 
@@ -33,7 +30,6 @@ class Timer():
     delta = DELTA
     start = 0
     current = 0
-    formatted = "0:00.0"
     running = False
     paused = False
     color = GREEN
@@ -125,6 +121,11 @@ def sound_play():
     macropad.play_tone(1319, 0.1)
     macropad.play_tone(988, 0.1)
 
+encoder_value = 0
+def encoder_position():
+    global macropad
+    return macropad.encoder
+
 encoder_pressed_count = 0
 def encoder_pressed():
     global macropad
@@ -132,14 +133,14 @@ def encoder_pressed():
     result = False
     if macropad.encoder_switch:
         encoder_pressed_count = encoder_pressed_count + 1
-        if encoder_pressed_count > ENCODER_LOOPS:
+        if encoder_pressed_count > ENCODER_COUNT:
             result = True
             encoder_pressed_count = 0
     else: 
         encoder_pressed_count = 0
     return result
 
-def key_pressed(loops):
+def key_pressed(current):
     event = macropad.keys.events.get()
     if event:
         i = event.key_number
@@ -147,13 +148,13 @@ def key_pressed(loops):
             timers[i].paused = not timers[i].paused
             if not timers[i].paused:
                 timers[i].running = True
-            timers[i].pressed_last = loops
+            timers[i].pressed_last = current
         if event.released:
-            if (loops - timers[i].pressed_last) > KEY_LOOPS:
+            if (current - timers[i].pressed_last) > 10:
                 timer_reset(i)
             timers[i].pressed_last = 0
 
-def timers_display(loops):
+def timers_display(current):
     global timers
     global text_areas
     global index_keys
@@ -164,17 +165,20 @@ def timers_display(loops):
             text_areas[index_keys+i].text = ""
             macropad.pixels[i] = 0x000000
         return
-
     for i, t in enumerate(timers):
-        text_areas[index_keys+i].text = t.formatted
+        M = ((t.current // 100) // 60) % 60
+        s = (t.current // 100) % 60
+        m = (t.current % 100) // 10
+        text_areas[index_keys+i].text = f'{M:2}:{s:02}.{m:1}'
         macropad.pixels[i] = t.color
 
+        # process blink
         if t.blink == ".":
-            if (loops - t.blink_last) > BLINK_LOOPS:
+            if (current - t.blink_last) > 4:
                 t.blink_on = not t.blink_on
                 if not t.blink_on:
                     macropad.pixels[i] = t.color_dim
-                t.blink_last = loops
+                t.blink_last = current
 
 
 #############################
@@ -182,29 +186,18 @@ def timers_display(loops):
 #############################
 timers = []
 
-def timer_formatted(current):
-    # assume current is in 0.1sec
-    m = (current % 10)
-    s = (current // 10)
-    M = (s // 60)
-    s = s - (60*M)
-    if M > 60:
-        M = 0
-    return f'{M:2}:{s:02}.{m:1}'
 
 def timer_add(start, delta, sound=False):
     global timers
     t = Timer()
     t.start = 0
     t.current = 0
-    
     t.running = False
     t.paused = True
     t.delta = delta
     if delta < 0:
         t.start = start
         t.current = start
-    t.formatted = timer_formatted(t.current)
     t.sound = sound
 
     t.current_yellow = t.start // 7
@@ -219,8 +212,7 @@ def timer_reset(index):
     t.paused = True
     if t.delta < 0:
         t.current = t.start
-    t.formatted = timer_formatted(t.current)
-    t.color = GREEN
+    t.color = 0x00FF00 # green
     t.blink = "_"
 
 def timers_start_all():
@@ -241,14 +233,13 @@ def timers_toggle_all():
         if not t.running and not t.paused:
             t.running = True
 
-def timers_update(loops):
+def timers_update(current):
     global timers
     for _, t in enumerate(timers):
         if t.running:
             if not t.paused:
                 # update current time
                 t.current = max(0, t.current + t.delta)
-                t.formatted = timer_formatted(t.current)
                 t.blink = "."
                 if t.delta < 0:
                     # update color
@@ -289,7 +280,7 @@ menu_timer_sound = "off"
 menu_current_position = 0
 menu_last_position = 0
 
-def check_menu(loops):
+def check_menu(current):
     global index_line1
     global menu_state
     global menu_timer_count
@@ -301,7 +292,7 @@ def check_menu(loops):
     global menu_last_position
 
     menu_last_position = menu_current_position
-    menu_current_position = macropad.encoder
+    menu_current_position = encoder_position()
 
     if menu_state == 1: # menu start
         text_areas[index_line1].text = "setup..."
@@ -415,17 +406,17 @@ timer_add(start=3000, delta=(-1*DELTA), sound=False)
 # timer_add(start=0, delta=DELTA)
 # timer_add(start=0, delta=DELTA)
 
-loops = 0
-timers_display(loops)
+current = 0
+timers_display(current)
 timers_start_all()
 
 #############################
 # Main Loop - Application
 #############################
 while True:
-    loops = loops + 1
-    check_buttons(loops)
-    check_menu(loops)
-    timers_update(loops)
-    timers_display(loops)
+    current = current + 1
+    check_buttons(current)
+    check_menu(current)
+    timers_update(current)
+    timers_display(current)
 
