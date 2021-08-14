@@ -162,10 +162,19 @@ def key_pressed(loops):
             if not timers[i].paused:
                 timers[i].running = True
             timers[i].pressed_last = loops
+            #DEBUG
+            #print("loops")
+            #print(loops)
         if event.released:
-            if (loops - timers[i].pressed_last) > KEY_LOOPS:
+            # HACK: if no timers running the loops increments really fast
+            if timers[i].paused and (loops - timers[i].pressed_last) > KEY_LOOPS:
                 timer_reset(i)
-            timers[i].pressed_last = 0
+                #DEBUG
+                #print("loops")
+                #print(loops)
+                #print(timers[i].pressed_last)
+                #print(KEY_LOOPS)
+            timers[i].pressed_last = loops
 
 def timers_display(loops):
     global timers
@@ -239,6 +248,9 @@ def timer_reset(index):
     t.formatted = timer_formatted(t.current)
     t.color = GREEN
     t.blink = "_"
+    #DEBUG
+    #print("timer reset")
+    #print(t.current)
 
 def timers_start_all():
     global timers
@@ -284,7 +296,6 @@ def timers_update(loops):
                         t.blink = "_"
                         t.running = False
                         if t.sound:
-                            print("play sound")
                             sound_play()
                 else:
                     t.color = GREEN
@@ -494,8 +505,9 @@ while True:
         timers_update(loops)
         timers_display(loops)
 
-    # DEBUG
-    if loops == 100:
+    #DEBUG
+    if loops == 1000:
+        print(loops)
         print(timers[0].current)
         print(timers[0].formatted)
 
