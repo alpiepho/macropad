@@ -9,10 +9,12 @@ from rainbowio import colorwheel
 # Constants/Globals
 #############################
 
-DELTA = 7 # in RS4020 Macropad, this approximates real time
+LOOP_FACTOR = 1
+DELTA = 1
+
 MAX_KEYS = 12
 
-BLINK_LOOPS = 8
+BLINK_LOOPS = 20
 ENCODER_LOOPS = 1
 KEY_LOOPS = 10
 
@@ -24,10 +26,22 @@ YELLOW = 0xFFFF00
 ORANGE = 0xFF8C00
 RED = 0xFF0000
 
-GREEN_DIM = 0x008800
-YELLOW_DIM = 0x888800
-ORANGE_DIM = 0x884500
-RED_DIM = 0x880000
+GREEN_DIM = 0x002200
+YELLOW_DIM = 0x222200
+ORANGE_DIM = 0x221200
+RED_DIM = 0x220000
+
+MENU_IDLE = 0
+MENU_SETUP = 1
+MENU_NUM_TIMERS = 2
+MENU_NUM_TIMERS_LOOP = 3
+MENU_TMR_DIRECTION = 4
+MENU_TMR_START = 5
+MENU_TMR_SOUND = 6
+MENU_DONE = 10
+
+BLINK_BLINK = "."
+BLINK_STEADY = "_"
 
 class Timer():
     delta = DELTA
@@ -41,7 +55,7 @@ class Timer():
     current_yellow = 0
     current_orange = 0
     current_red = 0
-    blink = "_"
+    blink = BLINK_BLINK
     blink_on = False
     blink_last = 0
     sound = False
@@ -159,7 +173,7 @@ def timers_display(loops):
     global index_keys
     global menu_state
 
-    if menu_state > 0:
+    if menu_state > MENU_IDLE:
         for i in range(MAX_KEYS):
             text_areas[index_keys+i].text = ""
             macropad.pixels[i] = 0x000000
@@ -167,14 +181,16 @@ def timers_display(loops):
 
     for i, t in enumerate(timers):
         text_areas[index_keys+i].text = t.formatted
-        macropad.pixels[i] = t.color
+        if t.blink != BLINK_BLINK:
+            macropad.pixels[i] = t.color
 
-        if t.blink == ".":
-            if (loops - t.blink_last) > BLINK_LOOPS:
-                t.blink_on = not t.blink_on
-                if not t.blink_on:
-                    macropad.pixels[i] = t.color_dim
-                t.blink_last = loops
+        if t.blink == BLINK_BLINK:
+            macropad.pixels[i] = t.color_dim
+            # if (loops - t.blink_last) > BLINK_LOOPS:
+            #     t.blink_on = not t.blink_on
+            #     if not t.blink_on:
+            #         macropad.pixels[i] = t.color_dim
+            #     t.blink_last = loops
 
 
 #############################
@@ -191,6 +207,7 @@ def timer_formatted(current):
     if M > 60:
         M = 0
     return f'{M:2}:{s:02}.{m:1}'
+    #return f'{current}'
 
 def timer_add(start, delta, sound=False):
     global timers
@@ -249,7 +266,7 @@ def timers_update(loops):
                 # update current time
                 t.current = max(0, t.current + t.delta)
                 t.formatted = timer_formatted(t.current)
-                t.blink = "."
+                t.blink = BLINK_STEADY
                 if t.delta < 0:
                     # update color
                     t.color = GREEN
@@ -273,14 +290,13 @@ def timers_update(loops):
                     t.color = GREEN
             else:
                 # update color
-                t.blink = "_"       
-
+                t.blink = BLINK_BLINK       
 
 #############################
 # Menu Functions
 #############################
 
-menu_state = 0
+menu_state = MENU_IDLE
 menu_timer_count = 1
 menu_timer_index = -1
 menu_timer_direction = "up"
@@ -288,6 +304,48 @@ menu_timer_start = 60
 menu_timer_sound = "off"
 menu_current_position = 0
 menu_last_position = 0
+
+# TODO adjust these, may get choppy, but should be able to adjust to consisitent time
+def set_loop_factor():
+    global LOOP_FACTOR
+    global DELTA
+    total = len(timers)
+    if total == 1:
+        LOOP_FACTOR = 9000
+        DELTA = 7
+    if total == 2:
+        LOOP_FACTOR = 8000
+        DELTA = 7
+    if total == 3:
+        LOOP_FACTOR = 7000
+        DELTA = 7
+    if total == 4:
+        LOOP_FACTOR = 6000
+        DELTA = 7
+    if total == 5:
+        LOOP_FACTOR = 5000
+        DELTA = 7
+    if total == 6:
+        LOOP_FACTOR = 4000
+        DELTA = 7
+    if total == 7:
+        LOOP_FACTOR = 3500
+        DELTA = 7
+    if total == 8:
+        LOOP_FACTOR = 3000
+        DELTA = 7
+    if total == 9:
+        LOOP_FACTOR = 2000
+        DELTA = 7
+    if total == 10:
+        LOOP_FACTOR = 1000
+        DELTA = 7
+    if total == 11:
+        LOOP_FACTOR = 500
+        DELTA = 7
+    if total == 12:
+        LOOP_FACTOR = 1
+        DELTA = 12
 
 def check_menu(loops):
     global index_line1
@@ -299,35 +357,36 @@ def check_menu(loops):
     global menu_timer_sound
     global menu_current_position
     global menu_last_position
+    global LOOP_FACTOR
 
     menu_last_position = menu_current_position
     menu_current_position = macropad.encoder
 
-    if menu_state == 1: # menu start
+    if menu_state == MENU_SETUP:
         text_areas[index_line1].text = "setup..."
         text_areas[index_line2].text = ""
         text_areas[index_line3].text = ""
         text_areas[index_line4].text = ""
         if encoder_pressed():
-            menu_state = 2
+            menu_state = MENU_NUM_TIMERS
 
-    elif menu_state == 2: # number timers
+    elif menu_state == MENU_NUM_TIMERS:
         text_areas[index_line1].text = "number timers: " + str(menu_timer_count)
         if menu_current_position > menu_last_position:
             menu_timer_count = min(MAX_KEYS, menu_timer_count + 1)
         if menu_current_position < menu_last_position:
             menu_timer_count = max(1, menu_timer_count - 1)
         if encoder_pressed():
-            menu_state = 3
+            menu_state = MENU_NUM_TIMERS_LOOP
 
-    elif menu_state == 3: # number timers loop
+    elif menu_state == MENU_NUM_TIMERS_LOOP:
         if menu_timer_index >= (menu_timer_count - 1):
-            menu_state = 10
+            menu_state = MENU_DONE
         else:
             menu_timer_index = menu_timer_index + 1
-            menu_state = 4
+            menu_state = MENU_TMR_DIRECTION
 
-    elif menu_state == 4: # timer direction
+    elif menu_state == MENU_TMR_DIRECTION:
         text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " direction: " + menu_timer_direction
         if menu_current_position > menu_last_position:
             menu_timer_direction = "up"
@@ -339,11 +398,11 @@ def check_menu(loops):
                 menu_timer_direction = "up"
                 menu_timer_start = 60
                 menu_timer_sound = "off"
-                menu_state = 3
+                menu_state = MENU_NUM_TIMERS_LOOP
             if menu_timer_direction == "down":
-                menu_state = 5
+                menu_state = MENU_TMR_START
 
-    elif menu_state == 5: # timer start
+    elif menu_state == MENU_TMR_START:
         M = (menu_timer_start) // 60
         s = (menu_timer_start) % 60
         text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " start: " + f'{M:02}:{s:02}'
@@ -352,9 +411,9 @@ def check_menu(loops):
         if menu_current_position < menu_last_position:
             menu_timer_start = max(0, menu_timer_start - 1)
         if encoder_pressed():
-            menu_state = 6
+            menu_state = MENU_TMR_SOUND
 
-    elif menu_state == 6: # timer sound
+    elif menu_state == MENU_TMR_SOUND:
         text_areas[index_line1].text = "tmr" + str(menu_timer_index+1) + " sound: " + menu_timer_sound
         if menu_current_position > menu_last_position:
             menu_timer_sound = "y"
@@ -372,14 +431,15 @@ def check_menu(loops):
             menu_timer_direction = "up"
             menu_timer_start = 60
             menu_timer_sound = "off"
-            menu_state = 3
+            menu_state = MENU_NUM_TIMERS_LOOP
 
-    elif menu_state == 10: # menu done
+    elif menu_state == MENU_DONE:
         text_areas[index_line1].text = "macropad timers"
         menu_state = 0
         menu_timer_count = 1
         menu_timer_index = -1
         timers_reset_all()
+        set_loop_factor()
 
 
 #############################
@@ -390,14 +450,14 @@ def check_buttons(current):
     global menu_state
     global timers
 
-    if menu_state > 0:
+    if menu_state > MENU_SETUP:
         macropad.pixels.brightness = BRIGHTNESS_LOW
         return
     macropad.pixels.brightness = BRIGHTNESS_HIGH
     if encoder_pressed():
         timers_reset_all()
         timers = []
-        menu_state = 1
+        menu_state = MENU_SETUP
     key_pressed(current)
 
 
@@ -407,13 +467,17 @@ def check_buttons(current):
 
 # DEBUG
 timer_add(start=0, delta=DELTA)
-timer_add(start=3000, delta=(-1*DELTA), sound=False)
-# timer_add(start=0, delta=DELTA)
-# timer_add(start=0, delta=DELTA)
-# timer_add(start=0, delta=DELTA)
-# timer_add(start=0, delta=DELTA)
-# timer_add(start=0, delta=DELTA)
-# timer_add(start=0, delta=DELTA)
+timer_add(start=300, delta=(-1*DELTA), sound=False)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
+timer_add(start=0, delta=DELTA)
 
 loops = 0
 timers_display(loops)
@@ -424,8 +488,14 @@ timers_start_all()
 #############################
 while True:
     loops = loops + 1
-    check_buttons(loops)
-    check_menu(loops)
-    timers_update(loops)
-    timers_display(loops)
+    if (loops % LOOP_FACTOR) == 0:
+        check_buttons(loops)
+        check_menu(loops)
+        timers_update(loops)
+        timers_display(loops)
+
+    # DEBUG
+    if loops == 100:
+        print(timers[0].current)
+        print(timers[0].formatted)
 
