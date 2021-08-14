@@ -156,10 +156,11 @@ Once confgiured, each timer runs and updates the leds.  The corresponding keys c
 - [done] merge in cmdline.py core timer logic
 - [done] turn on full timer application
 - [done] CONSTANTS
-- [done] gather needed libs
+- [done] update README for how it works and how to use it
 
 
-- update README for how it works and how to use it
+- gather needed libs AND other files
 - review for refactor
-- all files for lib
+- debug consistent rate independent of number timers running (use DEBUG)
+- debug rate vs real time
 - persist settings?
