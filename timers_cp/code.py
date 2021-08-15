@@ -180,17 +180,27 @@ def key_pressed(loops):
 def timers_display(loops):
     global timers
     global text_areas
+
+    if menu_state > MENU_IDLE:
+        for i in range(MAX_KEYS):
+            text_areas[index_keys+i].text = ""
+        return
+
+    board.DISPLAY.auto_refresh = False
+    for i, t in enumerate(timers):
+        text_areas[index_keys+i].text = t.formatted
+    board.DISPLAY.auto_refresh = True
+
+def timers_pixels(loops):
     global index_keys
     global menu_state
 
     if menu_state > MENU_IDLE:
         for i in range(MAX_KEYS):
-            text_areas[index_keys+i].text = ""
             macropad.pixels[i] = 0x000000
         return
 
     for i, t in enumerate(timers):
-        text_areas[index_keys+i].text = t.formatted
         if t.blink != BLINK_BLINK:
             macropad.pixels[i] = t.color
         if t.blink == BLINK_BLINK:
@@ -490,6 +500,7 @@ timer_add(start=0, delta=DELTA)
 
 loops = 0
 timers_display(loops)
+timers_pixels(loops)
 timers_start_all()
 
 TEST_LOOP = 10
@@ -515,6 +526,9 @@ while True:
         timers_display(loops)
         if loops == TEST_LOOP:
             test5 = time.monotonic_ns()
+        timers_pixels(loops)
+        if loops == TEST_LOOP:
+            test6 = time.monotonic_ns()
 
             test_diff = (test2 - test1)/1000000000
             print("buttons: " + str(test_diff))
@@ -524,7 +538,9 @@ while True:
             print("update:  " + str(test_diff))
             test_diff = (test5 - test4)/1000000000
             print("display: " + str(test_diff))
-            test_diff = (test5 - test1)/1000000000
+            test_diff = (test6 - test5)/1000000000
+            print("pixels : " + str(test_diff))
+            test_diff = (test6 - test1)/1000000000
             print("overall: " + str(test_diff))
 
 
