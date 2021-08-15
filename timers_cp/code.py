@@ -1,6 +1,7 @@
 import board
 import displayio
 import terminalio
+import time
 from adafruit_display_text import label  # display
 from adafruit_macropad import MacroPad   # tone
 from rainbowio import colorwheel
@@ -192,14 +193,8 @@ def timers_display(loops):
         text_areas[index_keys+i].text = t.formatted
         if t.blink != BLINK_BLINK:
             macropad.pixels[i] = t.color
-
         if t.blink == BLINK_BLINK:
-            macropad.pixels[i] = t.color_dim
-            # if (loops - t.blink_last) > BLINK_LOOPS:
-            #     t.blink_on = not t.blink_on
-            #     if not t.blink_on:
-            #         macropad.pixels[i] = t.color_dim
-            #     t.blink_last = loops
+            macropad.pixels[i] = t.color_dim 
 
 
 #############################
@@ -477,8 +472,9 @@ def check_buttons(current):
 #############################
 
 # DEBUG
+# timer_add(start=300, delta=(-1*DELTA), sound=False)
 timer_add(start=0, delta=DELTA)
-timer_add(start=300, delta=(-1*DELTA), sound=False)
+timer_add(start=0, delta=DELTA)
 timer_add(start=0, delta=DELTA)
 timer_add(start=0, delta=DELTA)
 timer_add(start=0, delta=DELTA)
@@ -490,9 +486,13 @@ timer_add(start=0, delta=DELTA)
 timer_add(start=0, delta=DELTA)
 timer_add(start=0, delta=DELTA)
 
+
+
 loops = 0
 timers_display(loops)
 timers_start_all()
+
+TEST_LOOP = 10
 
 #############################
 # Main Loop - Application
@@ -500,14 +500,34 @@ timers_start_all()
 while True:
     loops = loops + 1
     if (loops % LOOP_FACTOR) == 0:
-        check_buttons(loops)
-        check_menu(loops)
-        timers_update(loops)
-        timers_display(loops)
 
-    #DEBUG
-    if loops == 1000:
-        print(loops)
-        print(timers[0].current)
-        print(timers[0].formatted)
+        if loops == TEST_LOOP:
+            test1 = time.monotonic_ns()
+        check_buttons(loops)
+        if loops == TEST_LOOP:
+            test2 = time.monotonic_ns()
+        check_menu(loops)
+        if loops == TEST_LOOP:
+            test3 = time.monotonic_ns()
+        timers_update(loops)
+        if loops == TEST_LOOP:
+            test4 = time.monotonic_ns()
+        timers_display(loops)
+        if loops == TEST_LOOP:
+            test5 = time.monotonic_ns()
+
+            test_diff = (test2 - test1)/1000000000
+            print("buttons: " + str(test_diff))
+            test_diff = (test3 - test2)/1000000000
+            print("menu:    " + str(test_diff))
+            test_diff = (test4 - test3)/1000000000
+            print("update:  " + str(test_diff))
+            test_diff = (test5 - test4)/1000000000
+            print("display: " + str(test_diff))
+            test_diff = (test5 - test1)/1000000000
+            print("overall: " + str(test_diff))
+
+
+
+
 
