@@ -16,7 +16,6 @@ DELTA = 1
 MAX_KEYS = 12
 
 BLINK_LOOPS = 20
-ENCODER_LOOPS = 1
 KEY_LOOPS = 10
 
 BRIGHTNESS_LOW = 0.2
@@ -135,26 +134,23 @@ board.DISPLAY.show(text_group)
 # Macropad Functions
 #############################
 
+def timestamp():
+    return time.monotonic_ns()
+
 def sound_play():
     global macropad
     macropad.play_tone(1319, 0.1)
     macropad.play_tone(988, 0.1)
 
-encoder_pressed_count = 0
 def encoder_pressed():
     global macropad
-    global encoder_pressed_count
     result = False
-    if macropad.encoder_switch:
-        encoder_pressed_count = encoder_pressed_count + 1
-        if encoder_pressed_count > ENCODER_LOOPS:
-            result = True
-            encoder_pressed_count = 0
-    else: 
-        encoder_pressed_count = 0
+    macropad.encoder_switch_debounced.update()
+    if macropad.encoder_switch_debounced.pressed:
+        result = True
     return result
 
-def key_pressed(loops):
+def check_keys(loops):
     event = macropad.keys.events.get()
     if event:
         i = event.key_number
@@ -177,7 +173,7 @@ def key_pressed(loops):
                 #print(KEY_LOOPS)
             timers[i].pressed_last = loops
 
-def timers_display(loops):
+def timers_display():
     global timers
     global text_areas
 
@@ -186,12 +182,18 @@ def timers_display(loops):
             text_areas[index_keys+i].text = ""
         return
 
-    board.DISPLAY.auto_refresh = False
+    # board.DISPLAY.auto_refresh = False
     for i, t in enumerate(timers):
         text_areas[index_keys+i].text = t.formatted
-    board.DISPLAY.auto_refresh = True
+    # msg = ""
+    # for i, t in enumerate(timers):
+    #     msg = msg + timers[0].formatted
+    #     if i == 0:
+    #         msg = msg + "\n"
+    # text_areas[index_keys+0].text = msg
+    # board.DISPLAY.auto_refresh = True
 
-def timers_pixels(loops):
+def timers_pixels():
     global index_keys
     global menu_state
 
@@ -275,7 +277,7 @@ def timers_toggle_all():
         if not t.running and not t.paused:
             t.running = True
 
-def timers_update(loops):
+def timers_update():
     global timers
     for _, t in enumerate(timers):
         if t.running:
@@ -363,7 +365,7 @@ def set_loop_factor():
         LOOP_FACTOR = 1
         DELTA = 12
 
-def check_menu(loops):
+def check_menu():
     global index_line1
     global menu_state
     global menu_timer_count
@@ -462,7 +464,7 @@ def check_menu(loops):
 # Button Functions
 #############################
 
-def check_buttons(current):
+def check_encoder_button():
     global menu_state
     global timers
 
@@ -474,8 +476,6 @@ def check_buttons(current):
         timers_reset_all()
         timers = []
         menu_state = MENU_SETUP
-    key_pressed(current)
-
 
 #############################
 # Setup - Application
@@ -499,8 +499,8 @@ timer_add(start=0, delta=DELTA)
 
 
 loops = 0
-timers_display(loops)
-timers_pixels(loops)
+timers_display()
+timers_pixels()
 timers_start_all()
 
 TEST_LOOP = 10
@@ -513,22 +513,23 @@ while True:
     if (loops % LOOP_FACTOR) == 0:
 
         if loops == TEST_LOOP:
-            test1 = time.monotonic_ns()
-        check_buttons(loops)
+            test1 = timestamp()
+        check_encoder_button()
+        check_keys(loops)
         if loops == TEST_LOOP:
-            test2 = time.monotonic_ns()
-        check_menu(loops)
+            test2 = timestamp()
+        check_menu()
         if loops == TEST_LOOP:
-            test3 = time.monotonic_ns()
-        timers_update(loops)
+            test3 = timestamp()
+        timers_update()
         if loops == TEST_LOOP:
-            test4 = time.monotonic_ns()
-        timers_display(loops)
+            test4 = timestamp()
+        timers_display()
         if loops == TEST_LOOP:
-            test5 = time.monotonic_ns()
-        timers_pixels(loops)
+            test5 = timestamp()
+        timers_pixels()
         if loops == TEST_LOOP:
-            test6 = time.monotonic_ns()
+            test6 = timestamp()
 
             test_diff = (test2 - test1)/1000000000
             print("buttons: " + str(test_diff))
