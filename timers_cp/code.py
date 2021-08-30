@@ -10,13 +10,9 @@ from rainbowio import colorwheel
 # Constants/Globals
 #############################
 
-LOOP_FACTOR = 1
-DELTA = 1
-
 MAX_KEYS = 12
 
-BLINK_LOOPS = 20
-KEY_LOOPS = 10
+KEY_HOLD_NS = 1000000000
 
 BRIGHTNESS_LOW = 0.2
 BRIGHTNESS_HIGH = 1.0
@@ -44,7 +40,7 @@ BLINK_BLINK = "."
 BLINK_STEADY = "_"
 
 class Timer():
-    delta = DELTA
+    delta = 1
     start = 0
     current = 0
     formatted = "0:00.0"
@@ -59,7 +55,7 @@ class Timer():
     blink_on = False
     blink_last = 0
     sound = False
-    pressed_last = 0
+    pressed_last_ns = 0
 
 macropad = MacroPad()
 
@@ -134,9 +130,6 @@ board.DISPLAY.show(text_group)
 # Macropad Functions
 #############################
 
-def timestamp():
-    return time.monotonic_ns()
-
 def sound_play():
     global macropad
     macropad.play_tone(1319, 0.1)
@@ -150,7 +143,7 @@ def encoder_pressed():
         result = True
     return result
 
-def check_keys(loops):
+def check_keys():
     event = macropad.keys.events.get()
     if event:
         i = event.key_number
@@ -158,20 +151,12 @@ def check_keys(loops):
             timers[i].paused = not timers[i].paused
             if not timers[i].paused:
                 timers[i].running = True
-            timers[i].pressed_last = loops
-            #DEBUG
-            #print("loops")
-            #print(loops)
+            timers[i].pressed_last_ns = time.monotonic_ns()
         if event.released:
-            # HACK: if no timers running the loops increments really fast
-            if timers[i].paused and (loops - timers[i].pressed_last) > KEY_LOOPS:
+            current_ns = time.monotonic_ns()
+            if timers[i].paused and (current_ns - timers[i].pressed_last_ns) > KEY_HOLD_NS:
                 timer_reset(i)
-                #DEBUG
-                #print("loops")
-                #print(loops)
-                #print(timers[i].pressed_last)
-                #print(KEY_LOOPS)
-            timers[i].pressed_last = loops
+            timers[i].pressed_last_ns = current_ns
 
 def timers_display():
     global timers
@@ -284,6 +269,8 @@ def timers_update():
 
     current_ns = time.monotonic_ns()
     delta = (current_ns - last_ns) // 100000000
+    if delta == 0:
+        return  # update is running fast
     last_ns = current_ns
 
 
@@ -334,47 +321,6 @@ menu_timer_sound = "off"
 menu_current_position = 0
 menu_last_position = 0
 
-# TODO adjust these, may get choppy, but should be able to adjust to consisitent time
-def set_loop_factor():
-    global LOOP_FACTOR
-    global DELTA
-    total = len(timers)
-    if total == 1:
-        LOOP_FACTOR = 9000
-        DELTA = 7
-    if total == 2:
-        LOOP_FACTOR = 8000
-        DELTA = 7
-    if total == 3:
-        LOOP_FACTOR = 7000
-        DELTA = 7
-    if total == 4:
-        LOOP_FACTOR = 6000
-        DELTA = 7
-    if total == 5:
-        LOOP_FACTOR = 5000
-        DELTA = 7
-    if total == 6:
-        LOOP_FACTOR = 4000
-        DELTA = 7
-    if total == 7:
-        LOOP_FACTOR = 3500
-        DELTA = 7
-    if total == 8:
-        LOOP_FACTOR = 3000
-        DELTA = 7
-    if total == 9:
-        LOOP_FACTOR = 2000
-        DELTA = 7
-    if total == 10:
-        LOOP_FACTOR = 1000
-        DELTA = 7
-    if total == 11:
-        LOOP_FACTOR = 500
-        DELTA = 7
-    if total == 12:
-        LOOP_FACTOR = 1
-        DELTA = 12
 
 def check_menu():
     global index_line1
@@ -386,7 +332,6 @@ def check_menu():
     global menu_timer_sound
     global menu_current_position
     global menu_last_position
-    global LOOP_FACTOR
 
     menu_last_position = menu_current_position
     menu_current_position = macropad.encoder
@@ -468,7 +413,6 @@ def check_menu():
         menu_timer_count = 1
         menu_timer_index = -1
         timers_reset_all()
-        set_loop_factor()
 
 
 #############################
@@ -493,69 +437,34 @@ def check_encoder_button():
 #############################
 
 # DEBUG
-# timer_add(start=300, delta=(-1*DELTA), sound=False)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
-timer_add(start=0, delta=DELTA)
+# timer_add(start=300, delta=-1, sound=False)
+timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
+# timer_add(start=0, delta=1)
 
 
-
-loops = 0
 timers_display()
 timers_pixels()
 timers_start_all()
-
-TEST_LOOP = 10
 
 #############################
 # Main Loop - Application
 #############################
 while True:
-    loops = loops + 1
-    if (loops % LOOP_FACTOR) == 0:
-
-        if loops == TEST_LOOP:
-            test1 = timestamp()
-        check_encoder_button()
-        check_keys(loops)
-        if loops == TEST_LOOP:
-            test2 = timestamp()
-        check_menu()
-        if loops == TEST_LOOP:
-            test3 = timestamp()
-        timers_update()
-        if loops == TEST_LOOP:
-            test4 = timestamp()
-        timers_display()
-        if loops == TEST_LOOP:
-            test5 = timestamp()
-        timers_pixels()
-        if loops == TEST_LOOP:
-            test6 = timestamp()
-
-            test_diff = (test2 - test1)/1000000000
-            print("buttons: " + str(test_diff))
-            test_diff = (test3 - test2)/1000000000
-            print("menu:    " + str(test_diff))
-            test_diff = (test4 - test3)/1000000000
-            print("update:  " + str(test_diff))
-            test_diff = (test5 - test4)/1000000000
-            print("display: " + str(test_diff))
-            test_diff = (test6 - test5)/1000000000
-            print("pixels : " + str(test_diff))
-            test_diff = (test6 - test1)/1000000000
-            print("overall: " + str(test_diff))
-
-
-
+    check_encoder_button()
+    check_keys()
+    check_menu()
+    timers_update()
+    timers_display()
+    timers_pixels()
 
 
