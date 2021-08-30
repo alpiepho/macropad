@@ -13,7 +13,7 @@ from rainbowio import colorwheel
 MAX_KEYS = 12
 
 KEY_HOLD_NS = 1000000000
-ENCODER_HOLD = 3000000000
+ENCODER_HOLD = 4000000000
 
 BRIGHTNESS_LOW = 0.2
 BRIGHTNESS_HIGH = 1.0
@@ -146,8 +146,6 @@ def sound_play():
 
 def encoder_pressed():
     global macropad
-    global encoder_last_ns
-    global encoder_active
 
     result = False
     macropad.encoder_switch_debounced.update()
@@ -163,9 +161,6 @@ def encoder_long_pressed():
     global encoder_active
 
     result = False
-    # macropad.encoder_switch_debounced.update()
-    # if macropad.encoder_switch_debounced.pressed:
-        # result = True
     current_ns = time.monotonic_ns()
     if macropad.encoder_switch:
         encoder_active = True
@@ -190,6 +185,10 @@ def check_keys():
                 if timers[i].paused and (current_ns - timers[i].pressed_last_ns) > KEY_HOLD_NS:
                     timer_reset(i)
                 timers[i].pressed_last_ns = current_ns
+
+def check_encoder():
+    if menu_state == MENU_IDLE and encoder_pressed():
+        timers_toggle_all()
 
 def timers_display():
     global timers
@@ -469,7 +468,7 @@ timer_add(start=0, delta=1)
 setup_hardware()
 timers_display()
 timers_pixels()
-timers_start_all()
+# timers_start_all()
 
 #############################
 # Main Loop - Application
@@ -477,6 +476,7 @@ timers_start_all()
 while True:
     check_encoder_button()
     check_keys()
+    check_encoder()
     check_menu()
     timers_update()
     timers_display()
