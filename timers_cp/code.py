@@ -132,7 +132,8 @@ def setup_hardware():
     for ta in text_areas:
         text_group.append(ta)
 
-    text_areas[index_line1].text = "macropad timers"
+    text_areas[index_line1].text = f'macropad timers  {multiplier:.02f}'
+
     board.DISPLAY.show(text_group)
 
 #############################
@@ -282,13 +283,15 @@ def timers_toggle_all():
         if not t.running and not t.paused:
             t.running = True
 
+multiplier = 1.0
 last_ns = time.monotonic_ns()
 def timers_update():
     global timers
     global last_ns
 
     current_ns = time.monotonic_ns()
-    delta = (current_ns - last_ns) // 100000000
+    fdelta = multiplier * (current_ns - last_ns)
+    delta = int(fdelta) // 100000000
     if delta == 0:
         return  # update is running fast
     last_ns = current_ns
@@ -346,11 +349,22 @@ def check_menu():
     global menu_timer_sound
     global menu_current_position
     global menu_last_position
+    global multiplier
+    global text_areas
 
     menu_last_position = menu_current_position
     menu_current_position = macropad.encoder
 
-    if menu_state == MENU_SETUP:
+    if menu_state == MENU_IDLE:
+        if menu_current_position > menu_last_position:
+            multiplier = multiplier + 0.1
+            text_areas[index_line1].text = f'macropad timers  {multiplier:.02f}'
+
+        if menu_current_position < menu_last_position:
+            multiplier = max(0.1, multiplier - 0.1)
+            text_areas[index_line1].text = f'macropad timers  {multiplier:.02f}'
+
+    elif menu_state == MENU_SETUP:
         text_areas[index_line1].text = "setup..."
         text_areas[index_line2].text = ""
         text_areas[index_line3].text = ""
@@ -422,7 +436,7 @@ def check_menu():
             menu_state = MENU_NUM_TIMERS_LOOP
 
     elif menu_state == MENU_DONE:
-        text_areas[index_line1].text = "macropad timers"
+        text_areas[index_line1].text = f'macropad timers  {multiplier:.02f}'
         menu_state = 0
         menu_timer_count = 1
         menu_timer_index = -1
