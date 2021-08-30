@@ -13,6 +13,7 @@ from rainbowio import colorwheel
 MAX_KEYS = 12
 
 KEY_HOLD_NS = 1000000000
+ENCODER_HOLD = 3000000000
 
 BRIGHTNESS_LOW = 0.2
 BRIGHTNESS_HIGH = 1.0
@@ -145,26 +146,50 @@ def sound_play():
 
 def encoder_pressed():
     global macropad
+    global encoder_last_ns
+    global encoder_active
+
     result = False
     macropad.encoder_switch_debounced.update()
     if macropad.encoder_switch_debounced.pressed:
         result = True
     return result
 
+encoder_last_ns = time.monotonic_ns()
+encoder_active = False
+def encoder_long_pressed():
+    global macropad
+    global encoder_last_ns
+    global encoder_active
+
+    result = False
+    # macropad.encoder_switch_debounced.update()
+    # if macropad.encoder_switch_debounced.pressed:
+        # result = True
+    current_ns = time.monotonic_ns()
+    if macropad.encoder_switch:
+        encoder_active = True
+    else:
+        if encoder_active and current_ns - encoder_last_ns > ENCODER_HOLD:
+            result = True
+        encoder_last_ns = current_ns
+    return result
+
 def check_keys():
     event = macropad.keys.events.get()
     if event:
         i = event.key_number
-        if event.pressed:
-            timers[i].paused = not timers[i].paused
-            if not timers[i].paused:
-                timers[i].running = True
-            timers[i].pressed_last_ns = time.monotonic_ns()
-        if event.released:
-            current_ns = time.monotonic_ns()
-            if timers[i].paused and (current_ns - timers[i].pressed_last_ns) > KEY_HOLD_NS:
-                timer_reset(i)
-            timers[i].pressed_last_ns = current_ns
+        if i < len(timers):
+            if event.pressed:
+                timers[i].paused = not timers[i].paused
+                if not timers[i].paused:
+                    timers[i].running = True
+                timers[i].pressed_last_ns = time.monotonic_ns()
+            if event.released:
+                current_ns = time.monotonic_ns()
+                if timers[i].paused and (current_ns - timers[i].pressed_last_ns) > KEY_HOLD_NS:
+                    timer_reset(i)
+                timers[i].pressed_last_ns = current_ns
 
 def timers_display():
     global timers
@@ -417,7 +442,7 @@ def check_encoder_button():
         macropad.pixels.brightness = BRIGHTNESS_LOW
         return
     macropad.pixels.brightness = BRIGHTNESS_HIGH
-    if encoder_pressed():
+    if encoder_long_pressed():
         timers_reset_all()
         timers = []
         menu_state = MENU_SETUP
@@ -427,19 +452,19 @@ def check_encoder_button():
 #############################
 
 # DEBUG
-timer_add(start=300, delta=-1, sound=False)
+#timer_add(start=300, delta=-1, sound=False)
 timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
-# timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
+timer_add(start=0, delta=1)
 
 setup_hardware()
 timers_display()
