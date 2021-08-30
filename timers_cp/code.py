@@ -442,7 +442,6 @@ def check_menu():
         menu_timer_index = -1
         timers_reset_all()
 
-
 #############################
 # Button Functions
 #############################
@@ -464,20 +463,19 @@ def check_encoder_button():
 # Setup - Application
 #############################
 
-# DEBUG
-#timer_add(start=300, delta=-1, sound=False)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
-timer_add(start=0, delta=1)
+# read data.txt
+try:
+    with open('data.txt') as file:
+        lines = file.readlines()
+        for line in lines:
+            if len(timers) < MAX_KEYS:
+                #     start, delta, sound
+                # ie. 300,      -1,  True
+                parts = line.split(',')
+                sound = ("True" in parts[2])
+                timer_add(start=int(parts[0]), delta=int(parts[1]), sound=sound)
+except Exception as err:
+    print(err)
 
 setup_hardware()
 timers_display()
@@ -495,5 +493,3 @@ while True:
     timers_update()
     timers_display()
     timers_pixels()
-
-
