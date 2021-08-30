@@ -277,12 +277,23 @@ def timers_toggle_all():
         if not t.running and not t.paused:
             t.running = True
 
+last_ns = time.monotonic_ns()
 def timers_update():
     global timers
+    global last_ns
+
+    current_ns = time.monotonic_ns()
+    delta = (current_ns - last_ns) // 100000000
+    last_ns = current_ns
+
+
     for _, t in enumerate(timers):
         if t.running:
             if not t.paused:
                 # update current time
+                t.delta = delta
+                if t.delta < 0:
+                    t.delta = delta * -1
                 t.current = max(0, t.current + t.delta)
                 t.formatted = timer_formatted(t.current)
                 t.blink = BLINK_STEADY
