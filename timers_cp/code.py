@@ -36,9 +36,6 @@ MENU_TMR_START = 5
 MENU_TMR_SOUND = 6
 MENU_DONE = 10
 
-BLINK_BLINK = "."
-BLINK_STEADY = "_"
-
 class Timer():
     delta = 1
     start = 0
@@ -51,80 +48,91 @@ class Timer():
     current_yellow = 0
     current_orange = 0
     current_red = 0
-    blink = BLINK_BLINK
-    blink_on = False
-    blink_last = 0
     sound = False
     pressed_last_ns = 0
 
 macropad = MacroPad()
 
+text_areas = []
+index_keys = 0
+index_line1 = 0
+index_line2 = 0
+index_line3 = 0
+index_line4 = 0
+
 #############################
 # Setup - Hardware
 #############################
 
-# turn off pixels
-for i in range(len(macropad.pixels)):
-    macropad.pixels[i] = 0x000000
-macropad.pixels.brightness = BRIGHTNESS_HIGH
+def setup_hardware():
+    global text_areas
+    global index_keys
+    global index_line1
+    global index_line2
+    global index_line3
+    global index_line4
 
-# set up (empty) text areas in a text_group
-DISPLAY_WIDTH = 128
-DISPLAY_HEIGHT = 64
-text_areas = []
-y = -4
-ydelta = 18
+    # turn off pixels
+    for i in range(len(macropad.pixels)):
+        macropad.pixels[i] = 0x000000
+    macropad.pixels.brightness = BRIGHTNESS_HIGH
 
-index_line1 = len(text_areas)
-ta = label.Label(terminalio.FONT, text="")
-ta.anchor_point = (0.0, 0.0)
-ta.anchored_position = (0, y)
-text_areas.append(ta)
-y = y + ydelta
+    # set up (empty) text areas in a text_group
+    DISPLAY_WIDTH = 128
+    DISPLAY_HEIGHT = 64
+    y = -4
+    ydelta = 18
 
-index_line2 = len(text_areas)
-ta = label.Label(terminalio.FONT, text="")
-ta.anchor_point = (0.0, 0.0)
-ta.anchored_position = (0, y-8)
-text_areas.append(ta)
-y = y + ydelta
-
-index_line3 = len(text_areas)
-ta = label.Label(terminalio.FONT, text="")
-ta.anchor_point = (0.0, 0.0)
-ta.anchored_position = (0, y)
-text_areas.append(ta)
-y = y + ydelta
-
-index_line4 = len(text_areas)
-ta = label.Label(terminalio.FONT, text="")
-ta.anchor_point = (0.0, 0.0)
-ta.anchored_position = (0, y)
-text_areas.append(ta)
-y = y + ydelta
-
-y = ydelta
-index_keys = len(text_areas)
-b = 0.0
-for row in range(4):
-    a = 0.0
-    x = 0
-    for col in range(3):
-        ta = label.Label(terminalio.FONT, text="")
-        ta.anchor_point = (a, b)
-        ta.anchored_position = (x, y)
-        text_areas.append(ta)
-        a = a + 0.5
-        x = x + DISPLAY_WIDTH / 2
-    b = b + 0.5
+    index_line1 = len(text_areas)
+    ta = label.Label(terminalio.FONT, text="")
+    ta.anchor_point = (0.0, 0.0)
+    ta.anchored_position = (0, y)
+    text_areas.append(ta)
     y = y + ydelta
 
-text_group = displayio.Group()
-for ta in text_areas:
-    text_group.append(ta)
+    index_line2 = len(text_areas)
+    ta = label.Label(terminalio.FONT, text="")
+    ta.anchor_point = (0.0, 0.0)
+    ta.anchored_position = (0, y-8)
+    text_areas.append(ta)
+    y = y + ydelta
 
-text_areas[index_line1].text = "macropad timers"
-board.DISPLAY.show(text_group)
+    index_line3 = len(text_areas)
+    ta = label.Label(terminalio.FONT, text="")
+    ta.anchor_point = (0.0, 0.0)
+    ta.anchored_position = (0, y)
+    text_areas.append(ta)
+    y = y + ydelta
+
+    index_line4 = len(text_areas)
+    ta = label.Label(terminalio.FONT, text="")
+    ta.anchor_point = (0.0, 0.0)
+    ta.anchored_position = (0, y)
+    text_areas.append(ta)
+    y = y + ydelta
+
+    y = ydelta
+    index_keys = len(text_areas)
+    b = 0.0
+    for row in range(4):
+        a = 0.0
+        x = 0
+        for col in range(3):
+            ta = label.Label(terminalio.FONT, text="")
+            ta.anchor_point = (a, b)
+            ta.anchored_position = (x, y)
+            text_areas.append(ta)
+            a = a + 0.5
+            x = x + DISPLAY_WIDTH / 2
+        b = b + 0.5
+        y = y + ydelta
+
+    text_group = displayio.Group()
+    for ta in text_areas:
+        text_group.append(ta)
+
+    text_areas[index_line1].text = "macropad timers"
+    board.DISPLAY.show(text_group)
 
 #############################
 # Macropad Functions
@@ -167,16 +175,8 @@ def timers_display():
             text_areas[index_keys+i].text = ""
         return
 
-    # board.DISPLAY.auto_refresh = False
     for i, t in enumerate(timers):
         text_areas[index_keys+i].text = t.formatted
-    # msg = ""
-    # for i, t in enumerate(timers):
-    #     msg = msg + timers[0].formatted
-    #     if i == 0:
-    #         msg = msg + "\n"
-    # text_areas[index_keys+0].text = msg
-    # board.DISPLAY.auto_refresh = True
 
 def timers_pixels():
     global index_keys
@@ -188,9 +188,9 @@ def timers_pixels():
         return
 
     for i, t in enumerate(timers):
-        if t.blink != BLINK_BLINK:
+        if not t.paused:
             macropad.pixels[i] = t.color
-        if t.blink == BLINK_BLINK:
+        if t.paused:
             macropad.pixels[i] = t.color_dim 
 
 
@@ -239,10 +239,6 @@ def timer_reset(index):
         t.current = t.start
     t.formatted = timer_formatted(t.current)
     t.color = GREEN
-    t.blink = "_"
-    #DEBUG
-    #print("timer reset")
-    #print(t.current)
 
 def timers_start_all():
     global timers
@@ -273,17 +269,15 @@ def timers_update():
         return  # update is running fast
     last_ns = current_ns
 
-
     for _, t in enumerate(timers):
         if t.running:
             if not t.paused:
                 # update current time
-                t.delta = delta
                 if t.delta < 0:
-                    t.delta = delta * -1
-                t.current = max(0, t.current + t.delta)
+                    t.current = max(0, t.current - delta)
+                else:
+                    t.current = max(0, t.current + delta)
                 t.formatted = timer_formatted(t.current)
-                t.blink = BLINK_STEADY
                 if t.delta < 0:
                     # update color
                     t.color = GREEN
@@ -298,15 +292,11 @@ def timers_update():
                         t.color = RED
                         t.color = RED_DIM
                     if t.current == 0:
-                        t.blink = "_"
                         t.running = False
                         if t.sound:
                             sound_play()
                 else:
                     t.color = GREEN
-            else:
-                # update color
-                t.blink = BLINK_BLINK       
 
 #############################
 # Menu Functions
@@ -368,7 +358,7 @@ def check_menu():
             menu_timer_direction = "down"
         if encoder_pressed():
             if menu_timer_direction == "up":
-                timer_add(start=0, delta=DELTA, sound=False)
+                timer_add(start=0, delta=1, sound=False)
                 menu_timer_direction = "up"
                 menu_timer_start = 60
                 menu_timer_sound = "off"
@@ -395,13 +385,13 @@ def check_menu():
             menu_timer_sound = "n"
         if encoder_pressed():
             # create timer
-            delta = DELTA
+            delta = 1
             if menu_timer_direction == "down":
-                delta = -1 * DELTA
+                delta = -1
             sound = False
             if menu_timer_sound == "y":
                 sound = True
-            timer_add(start=(menu_timer_start*100), delta=delta, sound=sound)
+            timer_add(start=(menu_timer_start*10), delta=delta, sound=sound)
             menu_timer_direction = "up"
             menu_timer_start = 60
             menu_timer_sound = "off"
@@ -437,7 +427,7 @@ def check_encoder_button():
 #############################
 
 # DEBUG
-# timer_add(start=300, delta=-1, sound=False)
+timer_add(start=300, delta=-1, sound=False)
 timer_add(start=0, delta=1)
 # timer_add(start=0, delta=1)
 # timer_add(start=0, delta=1)
@@ -451,7 +441,7 @@ timer_add(start=0, delta=1)
 # timer_add(start=0, delta=1)
 # timer_add(start=0, delta=1)
 
-
+setup_hardware()
 timers_display()
 timers_pixels()
 timers_start_all()
